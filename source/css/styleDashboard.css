@@ -1,0 +1,19 @@
+QFrame#MainPanel {
+    background-color: transparent;
+}
+
+QFrame#PanelBottom {
+    background-color: white;
+    border-bottom-left-radius: 32px;
+    border-bottom-right-radius: 32px;
+}
+
+QFrame#FirstButtonPressed {
+    background-color: lightblue;
+    border-radius: 25px;
+}
+
+QFrame#ButtonsInDashboard {
+    background-color: transparent;
+    border-radius: 25px;
+}

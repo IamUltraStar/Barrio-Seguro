@@ -1,0 +1,22 @@
+QLabel#LabelGreet {
+    font-weight: bold;
+    font-size: 18.4pt;
+    font-family: 'Poppins Regular';
+    font-style: normal;
+    color: rgba(0,0,0,0.5);
+    background-color: transparent;
+}
+
+QLabel#LabelSuggestion {
+    font-weight: bold;
+    font-size: 14pt;
+    font-family: 'Poppins Regular';
+    font-style: normal;
+    color: rgba(0,0,0,0.5);
+    background-color: transparent;
+}
+
+QFrame#ButtonEmergency {
+    background-color: lightcoral;
+    border-radius: 130px;
+}

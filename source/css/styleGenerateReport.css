@@ -1,0 +1,98 @@
+QLabel#LabelTitle {
+    font-weight: bold;
+    font-size: 18.4pt;
+    font-family: 'Poppins Regular';
+    font-style: normal;
+    color: rgba(0,0,0,0.5);
+    background-color: transparent;
+}
+
+QFrame#InputPanel {
+    background-color: white;
+    border-radius: 10px;
+}
+
+QComboBox {
+    border: none; 
+    background-color: transparent; 
+    border-radius: 2px;
+    color: rgba(0, 0, 0, 0.5);
+    font-size: 13px;
+    font-weight: normal;
+    font-family: 'Roboto Black';
+    font-style: normal;
+    padding: 5px 5px;
+}
+
+QComboBox QAbstractItemView {
+    color: rgba(0, 0, 0, 0.5);
+    border: none;
+}
+
+QTextEdit {
+    border: none;
+    border-radius: 2px;
+    color: rgba(0, 0, 0, 0.5);
+    font-weight: bold;
+    font-size: 10pt;
+    font-family: 'Roboto';
+    font-style: normal;
+}
+
+QLineEdit#InputText {
+    background-color: transparent;
+    color: rgba(0, 0, 0, 0.5);
+    border: none;
+    font-weight: bold;
+    font-size: 10pt;
+    font-family: 'Roboto';
+    font-style: normal;
+}
+
+QDateEdit {
+    border: none;
+    background-color: transparent;
+    color: rgba(0, 0, 0, 0.5);
+    font-weight: bold;
+    font-size: 10pt;
+    font-family: 'Roboto';
+    font-style: normal;
+}
+
+QTimeEdit {
+    border: none;
+    background-color: transparent;
+    color: rgba(0, 0, 0, 0.5);
+    font-weight: bold;
+    font-size: 10pt;
+    font-family: 'Roboto';
+    font-style: normal;
+}
+
+QCheckBox#opcAnonymity {
+    border: none;
+    color: rgba(0, 0, 0, 0.5);
+    font-weight: bold;
+    font-size: 9pt;
+    font-family: 'Roboto';
+    font-style: normal;
+}
+
+QLabel#InputEvidence {
+    font-weight: bold;
+    font-size: 10pt;
+    color: rgba(0, 0, 0, 0.5);
+    font-family: 'Roboto';
+    font-style: normal;
+    background-color: transparent;
+}
+
+QLabel#LabelSuggestion {
+    font-weight: bold;
+    font-size: 10pt;
+    color: rgba(0, 0, 0, 0.5);
+    font-family: 'Roboto';
+    font-style: normal;
+    background-color: transparent;
+    padding-left: 10px;
+}

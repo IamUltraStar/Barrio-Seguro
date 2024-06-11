@@ -1,0 +1,102 @@
+QFrame#MainPanel{
+    background-color: white;
+    border-radius: 32px;
+}
+
+QLabel#LabelTitle {
+    font-weight: bold;
+    font-size: 18pt;
+    font-family: 'Poppins Regular';
+    font-style: normal;
+    color: white;
+    background-color: transparent;
+}
+
+QFrame#InputPanel {
+    background-color: white;
+    border-radius: 10px;
+}
+
+QLineEdit#InputText {
+    background-color: transparent;
+    border: none;
+    font-weight: bold;
+    font-size: 10pt;
+    font-family: 'Roboto';
+    font-style: normal;
+    color: rgba(0, 0, 0, 0.5)
+}
+
+QCheckBox#RememberCheck {
+    border: none;
+    font-weight: 500;
+    font-size: 8.4pt;
+    font-family: 'Roboto';
+    font-style: normal;
+    color: white;
+}
+
+QPushButton#ButtonIn {
+    background-color: rgba(121, 169, 143, 0.823);
+    color: rgb(0, 0, 0);
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 11pt;
+    font-family: 'Roboto';
+    font-style: normal;
+}
+
+QPushButton#ButtonIn:hover {
+    background-color: rgba(94, 167, 128, 0.823);
+}
+
+QLabel#LabelSuggestion {
+    font-weight: normal;
+    font-size: 9pt;
+    font-family: 'Poppins Regular';
+    font-style: normal;
+    color: white;
+}
+
+QLabel#LabelSuggestion:hover {
+    color: rgba(94, 167, 128, 0.823);
+}
+
+QScrollArea#ScrollArea {
+    background-color: transparent;
+    border: none;
+}
+
+QFrame#PanelScroll {
+    background-color: transparent;
+}
+
+QPushButton#ButtonAdd {
+    background-color: rgba(121, 169, 143, 0.823);
+    color: rgb(0, 0, 0);
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 10pt;
+    font-family: 'Roboto';
+    font-style: normal;
+    padding-left: 22px;
+}
+
+QPushButton#ButtonAdd:hover {
+    background-color: rgba(94, 167, 128, 0.823);
+}
+
+QPushButton#ButtonGoogle {
+    background-color: rgba(211, 211, 211, 0.823);
+    color: rgb(0, 0, 0);
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 10pt;
+    font-family: 'Roboto';
+    font-style: normal;
+    padding-left: 28px;
+}
+
+QPushButton#ButtonGoogle:hover {
+    background-color: rgba(255, 255, 255, 0.823);
+}

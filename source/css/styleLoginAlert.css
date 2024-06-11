@@ -1,0 +1,27 @@
+QFrame#MainPanel {
+    background-color: white;
+    border-radius: 10px;
+}
+
+QLabel#LabelMessage {
+    color: black;
+    font-weight: 700;
+    font-size: 8.2pt;
+    font-family: 'Roboto';
+    font-style: normal;
+}
+
+QPushButton {
+    background-color: rgba(121, 169, 143, 0.823);
+    border-radius: 8px;
+    color: black;
+    font-weight: 500;
+    font-size: 8pt;
+    font-family: 'Roboto';
+    font-style: normal;
+    letter-spacing: 0.2px;
+}
+
+QPushButton:hover {
+    background-color: rgba(94, 167, 128, 0.823);
+}
