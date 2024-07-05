@@ -3,25 +3,22 @@ CREATE DATABASE BarrioSeguro;
 USE BarrioSeguro;
 
 CREATE TABLE Usuario(
-    DNI                 VARCHAR(8)      NOT NULL,
-    PNombre             VARCHAR(20)     NOT NULL,
-    SNombre             VARCHAR(20),
-    ApellidoP           VARCHAR(20)     NOT NULL,
-    ApellidoM           VARCHAR(20)     NOT NULL,
+    U_User              VARCHAR(25)     NOT NULL,
+    U_Password          VARCHAR(50)     NOT NULL,
+    DNI                 VARCHAR(8)      NOT NULL UNIQUE,
+    FullName            VARCHAR(80)     NOT NULL,
     NTelefono           VARCHAR(9)      NOT NULL UNIQUE,
     Direccion           VARCHAR(60)     NOT NULL,
     CorreoElectronico   VARCHAR(60)     NOT NULL UNIQUE,
-    U_User              VARCHAR(25)     NOT NULL UNIQUE,
-    U_Password          VARCHAR(50)     NOT NULL,
-    CONSTRAINT PK_Persona PRIMARY KEY(DNI)
+    CONSTRAINT PK_Persona PRIMARY KEY(U_User)
 );
 
 CREATE TABLE ContactoEmergencia(
-    U_User          VARCHAR(8),
+    P_User          VARCHAR(25),
     CE_Nombre       VARCHAR(20),
     CE_NTelefono    VARCHAR(9),
-    CONSTRAINT FK_ContactoEmergencia_Usuario FOREIGN KEY(U_User) REFERENCES Usuario(DNI),
-    CONSTRAINT PK_ContactoEmergencia PRIMARY KEY(U_User, CE_NTelefono)
+    CONSTRAINT FK_ContactoEmergencia_Usuario FOREIGN KEY(P_User) REFERENCES Usuario(U_User),
+    CONSTRAINT PK_ContactoEmergencia PRIMARY KEY(P_User, CE_NTelefono)
 );
 
 CREATE TABLE Reporte(

@@ -1,14 +1,19 @@
 from PyQt6.QtCore import Qt, QDate, QTime
-from PyQt6.QtWidgets import (QFrame, QLabel, QGraphicsDropShadowEffect, QTabWidget, QLineEdit, QComboBox, QTextEdit, QCheckBox, QFileDialog, QDateEdit, QTimeEdit, QPushButton, QScrollArea, QVBoxLayout, QWidget)
+from PyQt6.QtWidgets import (QApplication, QFrame, QLabel, QGraphicsDropShadowEffect, QTabWidget, QLineEdit, QComboBox, QTextEdit, QCheckBox, QFileDialog, QDateEdit, QTimeEdit, QPushButton, QScrollArea, QVBoxLayout, QWidget)
 from PyQt6.QtGui import QPixmap
+from PyQt6.QtMultimedia import QSoundEffect
+from PyQt6.QtCore import QUrl, QEvent
+import random
 
 class FrameDashboard(QFrame):
+
+    objFrameAlert = None
 
     def __init__(self, TabFrames, conexionSQL):
         super().__init__()
         self.TabFrames = TabFrames
         self.conexionSQL = conexionSQL
-        self.setObjectName("MainPanel")
+        self.setObjectName("FrameDashboard")
         self.initComponents()
         self.initStyle()
 
@@ -19,17 +24,17 @@ class FrameDashboard(QFrame):
         self.Tab_Dashboard.setObjectName("Tab_Dashboard")
         self.Tab_Dashboard.setStyleSheet("#Tab_Dashboard::pane{border: 0; background-color: rgb(229, 231, 234); border-top-left-radius: 32px; border-top-right-radius: 32px;}")
 
-        PanelHomePage = FrameHomePage()
-        self.Tab_Dashboard.addTab(PanelHomePage, 'HomePage')
+        self.PanelHomePage = FrameHomePage(self.conexionSQL)
+        self.Tab_Dashboard.addTab(self.PanelHomePage, 'HomePage')
 
-        PanelGenerateReport = FrameGenerateReport()
-        self.Tab_Dashboard.addTab(PanelGenerateReport, 'GenerateReport')
+        self.PanelGenerateReport = FrameGenerateReport(self.conexionSQL)
+        self.Tab_Dashboard.addTab(self.PanelGenerateReport, 'GenerateReport')
 
-        PanelAccount = FrameAccount()
-        self.Tab_Dashboard.addTab(PanelAccount, 'Account')
+        self.PanelAccount = FrameAccount(self.conexionSQL)
+        self.Tab_Dashboard.addTab(self.PanelAccount, 'Account')
 
-        PanelSettings = FrameSettings(self.TabFrames)
-        self.Tab_Dashboard.addTab(PanelSettings, 'Settings')
+        self.PanelSettings = FrameSettings(self, self.TabFrames, self.conexionSQL)
+        self.Tab_Dashboard.addTab(self.PanelSettings, 'Settings')
 
         PanelBottom = QFrame(self)
         PanelBottom.setGeometry(0, 580, 360, 80)
@@ -102,6 +107,15 @@ class FrameDashboard(QFrame):
             css = file.read()
         self.setStyleSheet(css)
 
+    def verify_PanelGenerateReport(self, index, Panelcomponent):
+        if((index in [0, 2, 3]) and (self.PanelGenerateReport.ListTypeIncident.currentText() != '' or self.PanelGenerateReport.TextEditDescription.toPlainText() != '' or self.PanelGenerateReport.InputAddress.text() != '' or self.PanelGenerateReport.InputEvidence.text() != "Archivo no seleccionado")):
+            self.setEnabled(False)
+            self.objFrameAlert = FrameAlertPanelGenerateReport(self, index, Panelcomponent)
+            self.objFrameAlert.LabelMessage.setText("Estas seguro de salir de aquí?")
+            self.objFrameAlert.setVisible(True)
+        else:
+            self.Update_PanelopcMouseClicked(index, Panelcomponent)
+
     def Update_PanelopcMouseClicked(self, index, Panelcomponent):
         self.Tab_Dashboard.setCurrentIndex(index)
         self.CurrentStatePanel.setStyleSheet("background-color: transparent")
@@ -109,23 +123,36 @@ class FrameDashboard(QFrame):
         self.CurrentStatePanel = Panelcomponent
         self.setShadowWidget(Panelcomponent)
 
+    def setNone_FrameAlert(self):
+        self.objFrameAlert = None
+
     # Eventos
     def PanelIconHomePageMouseClicked(self, event):
-        self.Update_PanelopcMouseClicked(0, self.PanelIconHomePage)
+        self.verify_PanelGenerateReport(0, self.PanelIconHomePage)
+        #self.Update_PanelopcMouseClicked(0, self.PanelIconHomePage)
 
     def PanelIconGenerateReportMouseClicked(self, event):
         self.Update_PanelopcMouseClicked(1, self.PanelIconGenerateReport)
 
     def PanelIconAccountMouseClicked(self, event):
-        self.Update_PanelopcMouseClicked(2, self.PanelIconAccount)
+        self.verify_PanelGenerateReport(2, self.PanelIconAccount)
+        #self.Update_PanelopcMouseClicked(2, self.PanelIconAccount)
 
     def PanelIconSettingsMouseClicked(self, event):
-        self.Update_PanelopcMouseClicked(3, self.PanelIconSettings)
+        self.verify_PanelGenerateReport(3, self.PanelIconSettings)
+        #self.Update_PanelopcMouseClicked(3, self.PanelIconSettings)
+
+    def eventFilter(self, obj, event):
+        if(event.type() == QEvent.Type.WindowActivate and self.objFrameAlert != None):
+            self.objFrameAlert.raise_()
+            self.objFrameAlert.activateWindow()
+        return super().eventFilter(obj, event)
 
 class FrameHomePage(QFrame):
     
-    def __init__(self):
+    def __init__(self, conexionSQL):
         super().__init__()
+        self.conexionSQL = conexionSQL
         self.initComponents()
         self.initStyle()
 
@@ -144,11 +171,24 @@ class FrameHomePage(QFrame):
         self.ResizeImage(IconNotifications, 'img/notivacia.png')
 
         LabelGreet = QLabel(self)
-        LabelGreet.setText("Bienvenido Jean Pierre")
         LabelGreet.setObjectName("LabelGreet")
         LabelGreet.setGeometry(20, 100, 320, 40)
+        LabelGreet.setWordWrap(True)
         LabelGreet.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setShadowWidget(LabelGreet)
+
+        try:
+            result = ''
+            with self.conexionSQL.cursor() as stm:
+                result = stm.execute("SELECT R_Usuario FROM [BarrioSeguro].[dbo].[RememberLogin]").fetchone()
+
+            name = ''
+            with self.conexionSQL.cursor() as stm:
+                name = stm.execute(f"SELECT FullName FROM [BarrioSeguro].[dbo].[Usuario] WHERE U_User = '{result[0]}'").fetchone()
+            name_split = name[0].split(' ')
+            LabelGreet.setText(f"Bienvenido {name_split[0]} {name_split[1]}")
+        except Exception as e:
+            print(e)
 
         LabelSuggestion = QLabel(self)
         LabelSuggestion.setGeometry(50, 190, 260, 60)
@@ -163,6 +203,8 @@ class FrameHomePage(QFrame):
         ButtonEmergency.setCursor(Qt.CursorShape.PointingHandCursor)
         ButtonEmergency.setObjectName("ButtonEmergency")
         self.setShadowWidget(ButtonEmergency)
+
+        ButtonEmergency.mouseReleaseEvent = self.ButtonEmergencyMouseClicked
 
         IconButtonEmergency = QLabel(ButtonEmergency)
         IconButtonEmergency.setGeometry(70, 70, 120, 120)
@@ -186,10 +228,24 @@ class FrameHomePage(QFrame):
             css = file.read()
         self.setStyleSheet(css)
 
+    #Eventos
+    def ButtonEmergencyMouseClicked(self, event):
+        self.sound_effect = QSoundEffect()
+        url = QUrl.fromLocalFile("sound/morse-sos.wav")
+        self.sound_effect.setSource(url)
+        self.sound_effect.setLoopCount(1)  # Número de veces que se repetirá el sonido (-1 para bucle infinito)
+        self.sound_effect.setVolume(0.5)  # Volumen del sonido (0.0 a 1.0)
+        self.sound_effect.play()
+        print("Comunicando a todos los contactos de emergencia.")
+        print("Comunicando a seguridades cercanas.")
+
 class FrameGenerateReport(QFrame):
     
-    def __init__(self):
+    objFrameAlert = None
+
+    def __init__(self, conexionSQL):
         super().__init__()
+        self.conexionSQL= conexionSQL
         self.initComponents()
         self.initStyle()
 
@@ -206,54 +262,54 @@ class FrameGenerateReport(QFrame):
         LabelTitle.setObjectName("LabelTitle")
         self.setShadowWidget(LabelTitle)
 
-        PanelTypeIncident = QFrame(self)
-        PanelTypeIncident.setObjectName("InputPanel")
-        PanelTypeIncident.setGeometry(30, 80, 300, 40)
-        self.setShadowWidget(PanelTypeIncident)
+        self.PanelTypeIncident = QFrame(self)
+        self.PanelTypeIncident.setObjectName("InputPanel")
+        self.PanelTypeIncident.setGeometry(30, 80, 300, 40)
+        self.setShadowWidget(self.PanelTypeIncident)
 
-        IconTypeIncident = QLabel(PanelTypeIncident)
+        IconTypeIncident = QLabel(self.PanelTypeIncident)
         IconTypeIncident.setGeometry(10, 10, 20, 20)
         IconTypeIncident.setStyleSheet("background-color: transparent;")
         self.ResizeImage(IconTypeIncident, 'img/categorias.png')
 
-        ListTypeIncident = QComboBox(PanelTypeIncident)
-        ListTypeIncident.setGeometry(38, 5, 252, 30)
-        ListTypeIncident.setPlaceholderText("Tipo de incidente...")
+        self.ListTypeIncident = QComboBox(self.PanelTypeIncident)
+        self.ListTypeIncident.setGeometry(38, 5, 252, 30)
+        self.ListTypeIncident.setPlaceholderText("Tipo de incidente...")
 
-        ListTypeIncident.addItem('Robo')
-        ListTypeIncident.addItem('Asalto')
-        ListTypeIncident.addItem('Vandalismo')
-        ListTypeIncident.addItem('Emergencia Médica')
-        ListTypeIncident.addItem('Otro')
+        self.ListTypeIncident.addItem('Robo')
+        self.ListTypeIncident.addItem('Asalto')
+        self.ListTypeIncident.addItem('Vandalismo')
+        self.ListTypeIncident.addItem('Emergencia Médica')
+        self.ListTypeIncident.addItem('Otro')
 
-        PanelDescriptionIncident = QFrame(self)
-        PanelDescriptionIncident.setGeometry(30, 130, 300, 80)
-        PanelDescriptionIncident.setObjectName("InputPanel")
-        self.setShadowWidget(PanelDescriptionIncident)
+        self.PanelDescriptionIncident = QFrame(self)
+        self.PanelDescriptionIncident.setGeometry(30, 130, 300, 80)
+        self.PanelDescriptionIncident.setObjectName("InputPanel")
+        self.setShadowWidget(self.PanelDescriptionIncident)
 
-        IconDescriptionIncident = QLabel(PanelDescriptionIncident)
+        IconDescriptionIncident = QLabel(self.PanelDescriptionIncident)
         IconDescriptionIncident.setGeometry(10, 10, 20, 20)
         IconDescriptionIncident.setStyleSheet("background-color: transparent;")
         self.ResizeImage(IconDescriptionIncident, 'img/mensaje.png')
 
-        TextEditDescription = QTextEdit(PanelDescriptionIncident)
-        TextEditDescription.setGeometry(38, 10, 252, 60)
-        TextEditDescription.setPlaceholderText("Describe brevemente el incidente...")
+        self.TextEditDescription = QTextEdit(self.PanelDescriptionIncident)
+        self.TextEditDescription.setGeometry(38, 10, 252, 60)
+        self.TextEditDescription.setPlaceholderText("Describe brevemente el incidente...")
 
-        PanelAddress = QFrame(self)
-        PanelAddress.setGeometry(30, 220, 300, 40)
-        PanelAddress.setObjectName("InputPanel")
-        self.setShadowWidget(PanelAddress)
+        self.PanelAddress = QFrame(self)
+        self.PanelAddress.setGeometry(30, 220, 300, 40)
+        self.PanelAddress.setObjectName("InputPanel")
+        self.setShadowWidget(self.PanelAddress)
 
-        IconAddress = QLabel(PanelAddress)
+        IconAddress = QLabel(self.PanelAddress)
         IconAddress.setGeometry(10, 10, 20, 20)
         IconAddress.setStyleSheet("background-color: transparent;")
         self.ResizeImage(IconAddress, 'img/ubicacion.png')
 
-        InputAddress = QLineEdit(PanelAddress)
-        InputAddress.setGeometry(38, 10, 252, 20)
-        InputAddress.setObjectName("InputText")
-        InputAddress.setPlaceholderText("Ingrese la ubicación del incidente")
+        self.InputAddress = QLineEdit(self.PanelAddress)
+        self.InputAddress.setGeometry(38, 10, 252, 20)
+        self.InputAddress.setObjectName("InputText")
+        self.InputAddress.setPlaceholderText("Ingrese la ubicación del incidente")
         
         PanelDate = QFrame(self)
         PanelDate.setGeometry(30, 270, 140, 40)
@@ -265,10 +321,9 @@ class FrameGenerateReport(QFrame):
         IconDate.setStyleSheet("background-color: transparent;")
         self.ResizeImage(IconDate, 'img/calendar.png')
 
-        InputDate = QDateEdit(PanelDate)
-        InputDate.setCalendarPopup(True)
-        InputDate.setDate(QDate.currentDate())
-        InputDate.setGeometry(38, 10, 90, 20)
+        self.InputDate = QDateEdit(PanelDate)
+        self.InputDate.setDate(QDate.currentDate())
+        self.InputDate.setGeometry(38, 10, 90, 20)
 
         PanelHour = QFrame(self)
         PanelHour.setGeometry(190, 270, 140, 40)
@@ -280,9 +335,9 @@ class FrameGenerateReport(QFrame):
         IconHour.setStyleSheet("background-color: transparent;")
         self.ResizeImage(IconHour, 'img/reloj.png')
 
-        InputHour = QTimeEdit(PanelHour)
-        InputHour.setTime(QTime.currentTime())
-        InputHour.setGeometry(38, 10, 90, 20)
+        self.InputHour = QTimeEdit(PanelHour)
+        self.InputHour.setTime(QTime.currentTime())
+        self.InputHour.setGeometry(38, 10, 90, 20)
 
         PanelEvidence = QFrame(self)
         PanelEvidence.setGeometry(30, 320, 300, 40)
@@ -322,10 +377,10 @@ class FrameGenerateReport(QFrame):
         IconNameContact.setStyleSheet("background-color: transparent;")
         self.ResizeImage(IconNameContact, 'img/usuario.png')
 
-        InputNameContact = QLineEdit(PanelNameContact)
-        InputNameContact.setGeometry(38, 10, 252, 20)
-        InputNameContact.setObjectName("InputText")
-        InputNameContact.setPlaceholderText("Nombre")
+        self.InputNameContact = QLineEdit(PanelNameContact)
+        self.InputNameContact.setGeometry(38, 10, 252, 20)
+        self.InputNameContact.setObjectName("InputText")
+        self.InputNameContact.setPlaceholderText("Nombre")
 
         PanelNumberPhone = QFrame(self)
         PanelNumberPhone.setGeometry(30, 436, 300, 40)
@@ -337,27 +392,49 @@ class FrameGenerateReport(QFrame):
         IconNumberPhone.setStyleSheet("background-color: transparent;")
         self.ResizeImage(IconNumberPhone, 'img/telefono.png')
 
-        InputNumberPhone = QLineEdit(PanelNumberPhone)
-        InputNumberPhone.setGeometry(38, 10, 252, 20)
-        InputNumberPhone.setObjectName("InputText")
-        InputNumberPhone.setPlaceholderText("Número de Teléfono")
+        self.InputNumberPhone = QLineEdit(PanelNumberPhone)
+        self.InputNumberPhone.setGeometry(38, 10, 252, 20)
+        self.InputNumberPhone.setObjectName("InputText")
+        self.InputNumberPhone.setPlaceholderText("Número de Teléfono")
 
-        opcAnonymity = QCheckBox(self)
-        opcAnonymity.setText("Reportar de manera anónima")
-        opcAnonymity.setGeometry(43, 496, 180, 14)
-        opcAnonymity.setObjectName("opcAnonymity")
-        opcAnonymity.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        opcAnonymity.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setShadowWidget(opcAnonymity)
+        self.opcAnonymity = QCheckBox(self)
+        self.opcAnonymity.setText("Reportar de manera anónima")
+        self.opcAnonymity.setGeometry(43, 496, 180, 14)
+        self.opcAnonymity.setObjectName("opcAnonymity")
+        self.opcAnonymity.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.opcAnonymity.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setShadowWidget(self.opcAnonymity)
 
-        ButtonPerform = QLabel(self)
-        ButtonPerform.setGeometry(280, 520, 50, 50)
-        ButtonPerform.setStyleSheet("background-color: transparent;")
+        ButtonPerform = QPushButton(self)
+        ButtonPerform.setText("Enviar Reporte")
+        ButtonPerform.setGeometry(210, 525, 120, 40)
         ButtonPerform.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.ResizeImage(ButtonPerform, 'img/next.png')
+        ButtonPerform.setObjectName("ButtonPerform")
         self.setShadowWidget(ButtonPerform)
 
-        ButtonPerform.mouseReleaseEvent = self.ButtonPerformMouseClicked
+        ButtonPerform.clicked.connect(self.ButtonPerformMouseClicked)
+
+    def verifyErrors(self):
+        valor = True
+        if(self.ListTypeIncident.currentText() == ''):
+            self.PanelTypeIncident.setStyleSheet("#InputPanel{border: 1px solid rgba(189, 68, 68, 0.823);}")
+            valor = False
+        else:
+            self.PanelTypeIncident.setStyleSheet("#InputPanel{border: none}")
+        
+        if(self.TextEditDescription.toPlainText() == ''):
+            self.PanelDescriptionIncident.setStyleSheet("#InputPanel{border: 1px solid rgba(189, 68, 68, 0.823);}")
+            valor = False
+        else:
+            self.PanelDescriptionIncident.setStyleSheet("#InputPanel{border: none}")
+
+        if(self.InputAddress.text() == ''):
+            self.PanelAddress.setStyleSheet("#InputPanel{border: 1px solid rgba(189, 68, 68, 0.823);}")
+            valor = False
+        else:
+            self.PanelAddress.setStyleSheet("#InputPanel{border: none}")
+        
+        return valor
 
     def setShadowWidget(self, widget):
         ShadowWindow = QGraphicsDropShadowEffect()
@@ -376,11 +453,14 @@ class FrameGenerateReport(QFrame):
             css = file.read()
         self.setStyleSheet(css)
 
+    def setNone_FrameAlert(self):
+        self.objFrameAlert = None
+
     # Eventos
     def IconAddEvidenceMouseClicked(self, event):
         options = QFileDialog.Option.ReadOnly
         FileDialog = QFileDialog()
-        file_path, _ = FileDialog.getOpenFileName(self, "Abrir", "", "All Files (*);;Archivos de imagen (*.jpg;*.jpeg;*.png;*.bmp);;Archivos de vídeo (*.mp4;*.avi;*.mkv;*.mov)", options=options)
+        file_path, _ = FileDialog.getOpenFileName(self, "Abrir", "", "Archivos de imagen (*.jpg;*.jpeg;*.png;*.bmp);;Archivos de vídeo (*.mp4;*.avi;*.mkv;*.mov)", options=options)
 
         if(file_path):
             self.InputEvidence.setText(file_path)
@@ -388,15 +468,39 @@ class FrameGenerateReport(QFrame):
             self.InputEvidence.setText("Archivo no seleccionado")
 
     def ButtonPerformMouseClicked(self, event):
-        pass
+        if(self.verifyErrors()):
+            try:
+                id = f"{QDate.currentDate().toString("yyyy-MM-dd").replace('-','')}{random.randint(0,100)}"
+                with self.conexionSQL.cursor() as stm:
+                    stm.execute("INSERT INTO [BarrioSeguro].[dbo].[Reporte] (ID_Reporte, Tipo, Descripcion, Ubicacion, FechaHora, file_path, R_Contacto, R_NTelefono) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",(int(id),self.ListTypeIncident.currentText(), self.TextEditDescription.toPlainText(), self.InputAddress.text(), f"{self.InputDate.date().toString("yyyy-MM-dd")} {self.InputHour.time().toString("HH:mm:ss")}", self.InputEvidence.text(), self.InputNameContact.text(), self.InputNumberPhone.text()))
+                self.setEnabled(False)
+                self.objFrameAlert = FrameAlert(self)
+                self.objFrameAlert.LabelMessage.setText("Reporte enviado")
+                self.objFrameAlert.setVisible(True)
+            except Exception as e:
+                print(e)
+
+    def eventFilter(self, obj, event):
+        if(event.type() == QEvent.Type.WindowActivate and self.objFrameAlert != None):
+            self.objFrameAlert.raise_()
+            self.objFrameAlert.activateWindow()
+        return super().eventFilter(obj, event)
 
 class FrameAccount(QFrame):
     
     cant_contacts = 0
     a = 19
 
-    def __init__(self):
+    def __init__(self, conexionSQL):
         super().__init__()
+        self.conexionSQL = conexionSQL
+        self.user = ''
+        try:
+            with self.conexionSQL.cursor() as stm:
+                self.user = stm.execute("SELECT * FROM [BarrioSeguro].[dbo].[RememberLogin]").fetchone()
+        except Exception as e:
+            print(e)
+
         self.initComponents()
         self.initStyle()
 
@@ -408,14 +512,30 @@ class FrameAccount(QFrame):
         self.ResizeImage(IconProfile, 'img/3.png')
 
         LabelName = QLabel(self)
-        LabelName.setText("Jean Pierre")
         LabelName.setGeometry(85, 30, 200, 30)
         LabelName.setObjectName("LabelName")
 
+        try:
+            result = ''
+            with self.conexionSQL.cursor() as stm:
+                result = stm.execute(f"SELECT FullName FROM [BarrioSeguro].[dbo].[Usuario] WHERE U_User = '{self.user[0]}'").fetchone()
+            name = result[0].split(' ')
+            LabelName.setText(f"{name[0]} {name[1]}")
+        except Exception as e:
+            print(e)
+
         LabelMail = QLabel(self)
-        LabelMail.setText("jeanestrella578@gmail.com")
         LabelMail.setGeometry(85, 60, 200, 20)
         LabelMail.setObjectName("LabelMail")
+
+        try:
+            result = ''
+            with self.conexionSQL.cursor() as stm:
+                result = stm.execute(f"SELECT CorreoElectronico FROM [BarrioSeguro].[dbo].[Usuario] WHERE U_User = '{self.user[0]}'").fetchone()
+
+            LabelMail.setText(result[0])
+        except Exception as e:
+            print(e)
 
         ButtonEditProfile = QFrame(self)
         ButtonEditProfile.setGeometry(305, 40, 30, 30)
@@ -438,8 +558,6 @@ class FrameAccount(QFrame):
         ButtonAddContact.setCursor(Qt.CursorShape.PointingHandCursor)
         ButtonAddContact.setObjectName("ButtonAddContact")
 
-        ButtonAddContact.clicked.connect(self.ButtonAddContactMouseClicked)
-
         IconAddContact = QLabel(ButtonAddContact)
         IconAddContact.setGeometry(12, 8, 14, 14)
         IconAddContact.setStyleSheet("background-color: transparent;")
@@ -457,7 +575,55 @@ class FrameAccount(QFrame):
         self.layoutV = QVBoxLayout(panel_scroll)
         self.scroll_area.setWidget(panel_scroll)
 
-        self.ButtonAddContactMouseClicked()
+        self.cargarContactos()
+
+    def cargarContactos(self):
+        result=[]
+        try:
+            with self.conexionSQL.cursor() as stm :
+                result = stm.execute(f"SELECT CE_Nombre ,CE_NTelefono FROM ContactoEmergencia WHERE P_User = '{self.user[0]}' ").fetchall()
+        except Exception as e:
+            print(e)
+        
+        for contact in result :
+            if(self.cant_contacts < 10):
+                self.scroll_area.setFixedHeight(self.scroll_area.height() + 40)
+
+            contact_widget = QWidget()
+            contact_widget.setFixedHeight(35)
+            contact_widget.setObjectName("contact_widget")
+            contact_widget.setStyleSheet("#contact_widget {background-color: transparent;}")
+
+            IconContactProfile = QLabel(contact_widget)
+            IconContactProfile.setGeometry(0, 0, 35, 35)
+            IconContactProfile.setStyleSheet("background-color: transparent;")
+            self.ResizeImage(IconContactProfile, 'img/contacto1.png')
+
+            LabelNameContact = QLabel(contact_widget)
+            LabelNameContact.setText(f"{contact[0]}")
+            LabelNameContact.setGeometry(50, 0, 220, 17)
+            LabelNameContact.setAlignment(Qt.AlignmentFlag.AlignBottom)
+            LabelNameContact.setObjectName("LabelNameContact")
+
+            LabelTelefono = QLabel(contact_widget)
+            LabelTelefono.setText(f"{contact[1]}")
+            LabelTelefono.setGeometry(50, 17, 220, 18)
+            LabelTelefono.setAlignment(Qt.AlignmentFlag.AlignBottom)
+            LabelTelefono.setObjectName("LabelTelefono")
+
+            ButtonDelete = QPushButton(contact_widget)
+            ButtonDelete.setGeometry(290, 6, 24, 24)
+            ButtonDelete.setObjectName("ButtonDelete")
+
+            ButtonDelete.clicked.connect(lambda: self.verifyDeleteContact(contact_widget))
+
+            IconDeleteContactProfile = QLabel(ButtonDelete)
+            IconDeleteContactProfile.setGeometry(5, 5, 14, 14)
+            IconDeleteContactProfile.setStyleSheet("background-color: transparent;")
+            IconDeleteContactProfile.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.ResizeImage(IconDeleteContactProfile, 'img/eliminar1.png')
+            self.layoutV.addWidget(contact_widget)
+            self.cant_contacts += 1
 
     def setShadowWidget(self, widget):
         ShadowWindow = QGraphicsDropShadowEffect()
@@ -478,56 +644,42 @@ class FrameAccount(QFrame):
 
     # Eventos
     def ButtonAddContactMouseClicked(self):
-
-        if(self.cant_contacts < 10):
-            self.scroll_area.setFixedHeight(self.scroll_area.height() + 40)
-            
-        contact_widget = QWidget()
-        contact_widget.setFixedHeight(35)
-        contact_widget.setObjectName("contact_widget")
-        contact_widget.setStyleSheet("#contact_widget {background-color: transparent;}")
-
-        IconContactProfile = QLabel(contact_widget)
-        IconContactProfile.setGeometry(0, 0, 35, 35)
-        IconContactProfile.setStyleSheet("background-color: transparent;")
-        self.ResizeImage(IconContactProfile, 'img/contacto1.png')
-
-        LabelNameContact = QLabel(contact_widget)
-        LabelNameContact.setText("Jean Pierre")
-        LabelNameContact.setGeometry(50, 0, 220, 15)
-        LabelNameContact.setObjectName("LabelNameContact")
-
-        LabelMail = QLabel(contact_widget)
-        LabelMail.setText("jeanestrella578@gmail.com")
-        LabelMail.setGeometry(50, 15, 220, 20)
-        LabelMail.setObjectName("LabelMail")
-
-        ButtonDelete = QPushButton(contact_widget)
-        ButtonDelete.setGeometry(290, 6, 24, 24)
-        ButtonDelete.setObjectName("ButtonDelete")
-
-        ButtonDelete.clicked.connect(lambda: self.ButtonDeleteMouseClicked(contact_widget))
-
-        IconDeleteContactProfile = QLabel(ButtonDelete)
-        IconDeleteContactProfile.setGeometry(5, 5, 14, 14)
-        IconDeleteContactProfile.setStyleSheet("background-color: transparent;")
-        IconDeleteContactProfile.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.ResizeImage(IconDeleteContactProfile, 'img/eliminar1.png')
-
-        self.layoutV.addWidget(contact_widget)
-        self.cant_contacts += 1
+        pass
 
     def ButtonDeleteMouseClicked(self, widget):
-        self.layoutV.removeWidget(widget)
-        widget.deleteLater()
-        self.cant_contacts -= 1
-        if(self.cant_contacts < 10):
-            self.scroll_area.setFixedHeight(self.scroll_area.height() - 40)
+        try:
+            user = ''
+            with self.conexionSQL.cursor() as stm:
+                user = stm.execute("SELECT * FROM [BarrioSeguro].[dbo].[RememberLogin]").fetchone()
+
+            number_phone = ''
+            for child in widget:
+                if child.objectName() == 'LabelTelefono':
+                    number_phone = child.text()
+
+            with self.conexionSQL.cursor() as stm:
+                stm.execute(f"DELETE FROM [BarrioSeguro].[dbo].[ContactoEmergencia] WHERE P_User = {user[0]} AND CE_NTelefono = {number_phone}")
+
+            self.layoutV.removeWidget(widget)
+            widget.deleteLater()
+            self.cant_contacts -= 1
+            if(self.cant_contacts < 10):
+                self.scroll_area.setFixedHeight(self.scroll_area.height() - 40)
+        except Exception as e:
+            print(e)
+
+    def verifyDeleteContact(self, widget):
+        self.setEnabled(False)
+        self.objFrameAlertDeleteContact = FrameAlertDeleteContact(self, widget)
+        self.objFrameAlertDeleteContact.LabelMessage.setText("Estas seguro de borrar este contacto?")
+        self.objFrameAlertDeleteContact.setVisible(True)
 
 class FrameSettings(QFrame):
     
-    def __init__(self, TabFrames):
+    def __init__(self, MainWidget, TabFrames, conexionSQL):
         super().__init__()
+        self.MainWidget = MainWidget
+        self.conexionSQL = conexionSQL
         self.TabFrames = TabFrames
         self.initComponents()
 
@@ -584,4 +736,278 @@ class FrameSettings(QFrame):
 
     # Eventos
     def LabelLogoutMouseClicked(self, event):
-        self.TabFrames.setCurrentIndex(0)
+        try:
+            with self.conexionSQL.cursor() as stm:
+                stm.execute("TRUNCATE TABLE [BarrioSeguro].[dbo].[RememberLogin]")
+            self.TabFrames.setCurrentIndex(self.TabFrames.indexOf(self.TabFrames.findChild(QFrame, 'FrameLogin')))
+            self.TabFrames.removeTab(self.TabFrames.indexOf(self.TabFrames.findChild(QFrame, 'FrameDashboard')))
+            self.MainWidget.close()
+        except Exception as e:
+            print(e)
+
+class FrameAlert(QFrame):
+
+    def __init__(self, Frame):
+        super().__init__()
+        self.objFrame = Frame
+        self.initcomponents()
+
+    def initcomponents(self):
+        self.WindowConfig()   
+        self.FrameComponents()
+        self.initStyle()
+
+    def WindowConfig(self):
+        self.resize(276, 96)
+        self.setLocationToCenter()
+        self.installEventFilter(self)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool)
+
+    def FrameComponents(self):
+        PanelPrincipal = QFrame(self)
+        PanelPrincipal.setGeometry(3, 3, 270, 90)
+        PanelPrincipal.setObjectName("MainPanel")
+        self.setShadowWidget(PanelPrincipal)
+
+        self.LabelMessage = QLabel(PanelPrincipal)
+        self.LabelMessage.setGeometry(35, 20, 200, 20)
+        self.LabelMessage.setObjectName("LabelMessage")
+        self.LabelMessage.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.LabelMessage.setText("Usuario o Contraseña incorrecto.")
+        
+        ButtonOk = QPushButton(PanelPrincipal)
+        ButtonOk.setGeometry(110, 50, 50, 25)
+        ButtonOk.setText('OK')
+        ButtonOk.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setShadowWidget(ButtonOk)
+        
+        ButtonOk.clicked.connect(self.ButtonOkMouseClicked)
+
+    def setShadowWidget(self, widget):
+        ShadowWindow = QGraphicsDropShadowEffect()
+        ShadowWindow.setBlurRadius(15)
+        ShadowWindow.setOffset(0.0, 0.0)
+        widget.setGraphicsEffect(ShadowWindow)
+
+    def setLocationToCenter(self):
+        screen_size = QApplication.primaryScreen().geometry()
+        x = ((screen_size.width() - self.width())//2)
+        y = ((screen_size.height() - self.height())//2)
+        self.move(x , y)
+
+    def initStyle(self):
+        with open('source/css/styleLoginAlert.css', 'r') as file:
+            css = file.read()
+        self.setStyleSheet(css)
+
+    # Eventos
+    def ButtonOkMouseClicked(self, event):
+        self.objFrame.setEnabled(True)
+        self.close()
+        self.objFrame.setNone_FrameAlert()
+
+    def showEvent(self, event):
+        self.activateWindow()
+        return super().showEvent(event)
+
+    def keyReleaseEvent(self, event):
+        if(event.key() == Qt.Key.Key_Return):
+            self.objFrame.setEnabled(True)
+            self.close()
+            self.objFrame.setNone_FrameAlert()
+        return super().keyReleaseEvent(event)
+
+class FrameAlertPanelGenerateReport(QFrame):
+
+    def __init__(self, Frame, index, Panelcomponent):
+        super().__init__()
+        self.objFrame = Frame
+        self.index = index
+        self.Panelcomponent = Panelcomponent
+        self.initcomponents()
+
+    def initcomponents(self):
+        self.WindowConfig()   
+        self.FrameComponents()
+        self.initStyle()
+
+    def WindowConfig(self):
+        self.resize(276, 96)
+        self.setLocationToCenter()
+        self.installEventFilter(self)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool)
+
+    def FrameComponents(self):
+        PanelPrincipal = QFrame(self)
+        PanelPrincipal.setGeometry(3, 3, 270, 90)
+        PanelPrincipal.setObjectName("MainPanel")
+        self.setShadowWidget(PanelPrincipal)
+
+        self.LabelMessage = QLabel(PanelPrincipal)
+        self.LabelMessage.setGeometry(35, 20, 200, 20)
+        self.LabelMessage.setObjectName("LabelMessage")
+        self.LabelMessage.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.LabelMessage.setText("Usuario o Contraseña incorrecto.")
+        
+        ButtonYes = QPushButton(PanelPrincipal)
+        ButtonYes.setGeometry(75, 50, 50, 25)
+        ButtonYes.setText('Sí')
+        ButtonYes.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setShadowWidget(ButtonYes)
+        
+        ButtonYes.clicked.connect(self.ButtonYesMouseClicked)
+
+        ButtonNo = QPushButton(PanelPrincipal)
+        ButtonNo.setGeometry(145, 50, 50, 25)
+        ButtonNo.setText('No')
+        ButtonNo.setCursor(Qt.CursorShape.PointingHandCursor)
+        ButtonNo.setObjectName("ButtonNo")
+        self.setShadowWidget(ButtonNo)
+        
+        ButtonNo.clicked.connect(self.ButtonNoMouseClicked)
+
+    def resetStylePanelGenerateReport(self):
+        self.objFrame.PanelGenerateReport.ListTypeIncident.setCurrentIndex(-1)
+        self.objFrame.PanelGenerateReport.TextEditDescription.setText('')
+        self.objFrame.PanelGenerateReport.InputAddress.setText('')
+        self.objFrame.PanelGenerateReport.InputDate.setDate(QDate.currentDate())
+        self.objFrame.PanelGenerateReport.InputHour.setTime(QTime.currentTime())
+        self.objFrame.PanelGenerateReport.InputEvidence.setText("Archivo no seleccionado")
+        self.objFrame.PanelGenerateReport.InputNameContact.setText('')
+        self.objFrame.PanelGenerateReport.InputNumberPhone.setText('')
+        self.objFrame.PanelGenerateReport.opcAnonymity.setChecked(False)
+        self.objFrame.PanelGenerateReport.PanelTypeIncident.setStyleSheet("#InputPanel{border: none}")
+        self.objFrame.PanelGenerateReport.PanelDescriptionIncident.setStyleSheet("#InputPanel{border: none}")
+        self.objFrame.PanelGenerateReport.PanelAddress.setStyleSheet("#InputPanel{border: none}")
+
+    def setShadowWidget(self, widget):
+        ShadowWindow = QGraphicsDropShadowEffect()
+        ShadowWindow.setBlurRadius(15)
+        ShadowWindow.setOffset(0.0, 0.0)
+        widget.setGraphicsEffect(ShadowWindow)
+
+    def setLocationToCenter(self):
+        screen_size = QApplication.primaryScreen().geometry()
+        x = ((screen_size.width() - self.width())//2)
+        y = ((screen_size.height() - self.height())//2)
+        self.move(x , y)
+
+    def initStyle(self):
+        with open('source/css/styleLoginAlert.css', 'r') as file:
+            css = file.read()
+        self.setStyleSheet(css)
+
+    # Eventos
+    def ButtonYesMouseClicked(self):
+        self.objFrame.setEnabled(True)
+        self.close()
+        self.objFrame.Update_PanelopcMouseClicked(self.index, self.Panelcomponent)
+        self.resetStylePanelGenerateReport()
+        self.objFrame.setNone_FrameAlert()
+
+    def ButtonNoMouseClicked(self):
+        self.objFrame.setEnabled(True)
+        self.close()
+        self.objFrame.setNone_FrameAlert()
+
+    def showEvent(self, event):
+        self.activateWindow()
+        return super().showEvent(event)
+
+    def keyReleaseEvent(self, event):
+        if(event.key() == Qt.Key.Key_Return):
+            self.objFrame.setEnabled(True)
+            self.close()
+            self.objFrame.setNone_FrameAlert()
+        return super().keyReleaseEvent(event)
+    
+class FrameAlertDeleteContact(QFrame):
+
+    def __init__(self, Frame, widget):
+        super().__init__()
+        self.objFrame = Frame
+        self.widget = widget
+        self.initcomponents()
+
+    def initcomponents(self):
+        self.WindowConfig()   
+        self.FrameComponents()
+        self.initStyle()
+
+    def WindowConfig(self):
+        self.resize(276, 96)
+        self.setLocationToCenter()
+        self.installEventFilter(self)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool)
+
+    def FrameComponents(self):
+        PanelPrincipal = QFrame(self)
+        PanelPrincipal.setGeometry(3, 3, 270, 90)
+        PanelPrincipal.setObjectName("MainPanel")
+        self.setShadowWidget(PanelPrincipal)
+
+        self.LabelMessage = QLabel(PanelPrincipal)
+        self.LabelMessage.setGeometry(35, 20, 200, 20)
+        self.LabelMessage.setObjectName("LabelMessage")
+        self.LabelMessage.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.LabelMessage.setText("Usuario o Contraseña incorrecto.")
+        
+        ButtonYes = QPushButton(PanelPrincipal)
+        ButtonYes.setGeometry(75, 50, 50, 25)
+        ButtonYes.setText('Sí')
+        ButtonYes.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setShadowWidget(ButtonYes)
+        
+        ButtonYes.clicked.connect(self.ButtonYesMouseClicked)
+
+        ButtonNo = QPushButton(PanelPrincipal)
+        ButtonNo.setGeometry(145, 50, 50, 25)
+        ButtonNo.setText('No')
+        ButtonNo.setCursor(Qt.CursorShape.PointingHandCursor)
+        ButtonNo.setObjectName("ButtonNo")
+        self.setShadowWidget(ButtonNo)
+        
+        ButtonNo.clicked.connect(self.ButtonNoMouseClicked)
+
+    def setShadowWidget(self, widget):
+        ShadowWindow = QGraphicsDropShadowEffect()
+        ShadowWindow.setBlurRadius(15)
+        ShadowWindow.setOffset(0.0, 0.0)
+        widget.setGraphicsEffect(ShadowWindow)
+
+    def setLocationToCenter(self):
+        screen_size = QApplication.primaryScreen().geometry()
+        x = ((screen_size.width() - self.width())//2)
+        y = ((screen_size.height() - self.height())//2)
+        self.move(x , y)
+
+    def initStyle(self):
+        with open('source/css/styleLoginAlert.css', 'r') as file:
+            css = file.read()
+        self.setStyleSheet(css)
+
+    # Eventos
+    def ButtonYesMouseClicked(self):
+        self.objFrame.setEnabled(True)
+        self.close()
+        self.objFrame.ButtonDeleteMouseClicked(self.widget)
+        self.objFrame.setNone_FrameAlert()
+
+    def ButtonNoMouseClicked(self):
+        self.objFrame.setEnabled(True)
+        self.close()
+        self.objFrame.setNone_FrameAlert()
+
+    def showEvent(self, event):
+        self.activateWindow()
+        return super().showEvent(event)
+
+    def keyReleaseEvent(self, event):
+        if(event.key() == Qt.Key.Key_Return):
+            self.objFrame.setEnabled(True)
+            self.close()
+            self.objFrame.setNone_FrameAlert()
+        return super().keyReleaseEvent(event)

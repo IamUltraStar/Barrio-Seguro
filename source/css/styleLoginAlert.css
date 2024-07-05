@@ -25,3 +25,17 @@ QPushButton {
 QPushButton:hover {
     background-color: rgba(94, 167, 128, 0.823);
 }
+
+QPushButton#ButtonNo {
+    background-color: rgba(177, 83, 83, 0.823);
+    color: white;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 8pt;
+    font-family: 'Roboto';
+    font-style: normal;
+}
+
+QPushButton#ButtonNo:hover {
+    background-color: rgba(189, 68, 68, 0.823);
+}

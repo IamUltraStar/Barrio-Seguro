@@ -2,7 +2,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QWidget, QApplication, QFrame, QGraphicsDropShadowEffect, QTabWidget)
 from db.ConexionSQL import ConexionSQL
 from views.view_login import FrameLogin
-from views.view_signup import FrameRegister, FrameEnterData_Register, FrameEnterEmergency_Contact
+from views.view_signup import FrameRegister
 from views.view_dashboard import FrameDashboard
 import sys
 import os
@@ -46,20 +46,11 @@ class BarrioSeguro(QWidget):
         self.TabFrames.setObjectName("TabFrames")  
         self.TabFrames.setStyleSheet("#TabFrames::pane{border: 0;}")
 
-        PanelLogin = FrameLogin(self.TabFrames, self.connection)
+        PanelLogin = FrameLogin(self, self.TabFrames, self.connection)
         self.TabFrames.addTab(PanelLogin, 'Login_Account')
 
         PanelRegister = FrameRegister(self.TabFrames, self.connection)
         self.TabFrames.addTab(PanelRegister, 'Register_Account')
-
-        PanelEnterData_Register = FrameEnterData_Register(self.TabFrames, self.connection)
-        self.TabFrames.addTab(PanelEnterData_Register, 'EnterData_Register')
-
-        PanelEnterEmergency_Contact = FrameEnterEmergency_Contact(self.TabFrames, self.connection)
-        self.TabFrames.addTab(PanelEnterEmergency_Contact, 'EnterEmergency_Contact')
-
-        PanelDashboard = FrameDashboard(self.TabFrames, self.connection)
-        self.TabFrames.addTab(PanelDashboard, 'Dashboard')
 
     def setLocationToCenter(self):
         screen_size = QApplication.primaryScreen().geometry()
@@ -69,14 +60,17 @@ class BarrioSeguro(QWidget):
 
     def RememberLogin(self):
         try:
-            self.statement = self.connection.cursor()
-            self.statement.execute("SELECT * FROM [BarrioSeguro].[dbo].[RememberLogin]")
-            result = self.statement.fetchone()
+            result = ''
+            with self.connection.cursor() as stm:
+                stm.execute("SELECT * FROM [BarrioSeguro].[dbo].[RememberLogin]")
+                result = stm.fetchone()
 
             if(result is not None):
-                self.TabFrames.setCurrentIndex(4)
+                PanelDashboard = FrameDashboard(self.TabFrames, self.connection)
+                self.TabFrames.addTab(PanelDashboard, 'Dashboard')
+                self.TabFrames.setCurrentIndex(self.TabFrames.indexOf(self.TabFrames.findChild(QFrame, 'FrameDashboard')))
             else:
-                self.TabFrames.setCurrentIndex(0)
+                self.TabFrames.setCurrentIndex(self.TabFrames.indexOf(self.TabFrames.findChild(QFrame, 'FrameLogin')))
 
         except Exception as e:
             print(e)
@@ -85,6 +79,7 @@ class BarrioSeguro(QWidget):
     def closeEvent(self, event):
         if os.path.exists("token.json"):
             os.remove("token.json")
+        self.connection.close()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

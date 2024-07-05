@@ -1,4 +1,19 @@
-QFrame#MainPanel{
+QFrame#FrameLogin{
+    background-color: white;
+    border-radius: 32px;
+}
+
+QFrame#FrameRegister{
+    background-color: white;
+    border-radius: 32px;
+}
+
+QFrame#FrameEnterData_Register{
+    background-color: white;
+    border-radius: 32px;
+}
+
+QFrame#FrameEnterEmergency_Contact{
     background-color: white;
     border-radius: 32px;
 }
@@ -84,6 +99,21 @@ QPushButton#ButtonAdd {
 
 QPushButton#ButtonAdd:hover {
     background-color: rgba(94, 167, 128, 0.823);
+}
+
+QPushButton#ButtonNext {
+    background-color: rgba(53, 198, 121, 0.823);
+    color: rgb(0, 0, 0);
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 10.5pt;
+    font-family: 'Roboto';
+    font-style: normal;
+    padding-left: 3px;
+}
+
+QPushButton#ButtonNext:hover {
+    background-color: rgba(48, 218, 127, 0.823);
 }
 
 QPushButton#ButtonGoogle {

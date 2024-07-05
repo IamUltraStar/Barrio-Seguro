@@ -1,18 +1,21 @@
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (QWidget, QFrame, QLabel, QGraphicsDropShadowEffect, QLineEdit, QCheckBox, QPushButton, QScrollArea, QHBoxLayout, QVBoxLayout)
+from PyQt6.QtCore import Qt, QEvent
+from PyQt6.QtWidgets import (QWidget, QFrame, QLabel, QGraphicsDropShadowEffect, QLineEdit, QCheckBox, QPushButton, QScrollArea, QHBoxLayout, QVBoxLayout, QApplication)
 from PyQt6.QtGui import QPixmap
+from views.view_dashboard import FrameDashboard
 
 class FrameRegister(QFrame):
     
     ValorPass, valorshowPassword = True, True
     ValorPass1, valorshowPassword1 = True, True
+    objFrameAlert = None
 
     def __init__(self, TabFrames, conexionSQL):
         super().__init__()
         self.TabFrames=TabFrames
         self.conexionSQL=conexionSQL
+        self.installEventFilter(self)
 
-        self.setObjectName("MainPanel")
+        self.setObjectName("FrameRegister")
         BackgroundImage = QLabel(self)
         BackgroundImage.resize(360, 660)
         self.ResizeImage(BackgroundImage, 'img/fondo1-blur.png')
@@ -40,10 +43,11 @@ class FrameRegister(QFrame):
         IconUser.setGeometry(10, 10, 20, 20)
         self.ResizeImage(IconUser, 'img/3.png')
 
-        self.Input_User = QLineEdit(PanelUser)
+        self.Input_User = InputUserLineEdit(PanelUser)
         self.Input_User.setObjectName("InputText")
         self.Input_User.setGeometry(38, 10, 224, 20)
         self.Input_User.setPlaceholderText("Ingrese un usuario")
+        self.Input_User.installEventFilter(self)
 
     def mailComponents(self):
         PanelMail = QFrame(self)
@@ -79,7 +83,6 @@ class FrameRegister(QFrame):
         self.Input_Password.setEchoMode(QLineEdit.EchoMode.Password)
         
         self.Input_Password.textChanged.connect(self.Input_PasswordKeyTyped)
-        self.Input_Password.keyReleaseEvent = self.Input_PasswordKeyReleased
         
         self.IconShowPassword = QLabel(PanelPassword)
         self.IconShowPassword.setGeometry(234, 10, 20, 20)
@@ -106,7 +109,6 @@ class FrameRegister(QFrame):
         self.Input_Password1.setEchoMode(QLineEdit.EchoMode.Password)
         
         self.Input_Password1.textChanged.connect(self.Input_Password1KeyTyped)
-        self.Input_Password1.keyReleaseEvent = self.Input_Password1KeyReleased
         
         self.IconShowPassword1 = QLabel(PanelPassword1)
         self.IconShowPassword1.setGeometry(234, 10, 20, 20)
@@ -137,16 +139,50 @@ class FrameRegister(QFrame):
 
         LabelSuggestion = QLabel(self)
         LabelSuggestion.setGeometry(30, 532, 300, 20)
-        LabelSuggestion.setText("Si estas registrado. Inicie sesión")
+        LabelSuggestion.setText("Está registrado? Inicie sesión ahora")
         LabelSuggestion.setAlignment(Qt.AlignmentFlag.AlignCenter)
         LabelSuggestion.setObjectName("LabelSuggestion")
         self.setShadowWidget(LabelSuggestion)
 
         LabelSuggestion.mouseReleaseEvent = self.LabelSuggestionMouseClicked
 
-    def verifyPassword(self):
-        valor = True if(self.Input_Password.text() == self.Input_Password1.text()) else False
-        return valor
+    def verifyErrors(self):
+        domains = ['@gmail.com','@hotmail.com','@outlook.com']
+        if(self.Input_User.text() == ''):
+            self.setEnabled(False)
+            self.objFrameAlert = FrameAlert(self)
+            self.objFrameAlert.LabelMessage.setText("Ingrese un usuario")
+            self.objFrameAlert.setVisible(True)
+            return False
+
+        if not any(self.Input_Mail.text().endswith(domain) for domain in domains):
+            self.setEnabled(False)
+            self.objFrameAlert = FrameAlert(self)
+            self.objFrameAlert.LabelMessage.setText("Ingrese un correo válido")
+            self.objFrameAlert.setVisible(True)
+            return False
+
+        if(self.Input_Password.text() == '' and self.Input_Password1.text() == ''):
+            self.setEnabled(False)
+            self.objFrameAlert = FrameAlert(self)
+            self.objFrameAlert.LabelMessage.setText("Ingrese una contraseña")
+            self.objFrameAlert.setVisible(True)
+            return False
+
+        if(self.Input_Password.text() != self.Input_Password1.text()):
+            self.setEnabled(False)
+            self.objFrameAlert = FrameAlert(self)
+            self.objFrameAlert.LabelMessage.setText("Las contraseñas no coinciden")
+            self.objFrameAlert.setVisible(True)
+            return False
+        
+        if not self.CheckTerms.isChecked():
+            self.setEnabled(False)
+            self.objFrameAlert = FrameAlert(self)
+            self.objFrameAlert.LabelMessage.setText("Acepte los Terminos y Condiciones")
+            self.objFrameAlert.setVisible(True)
+            return False
+        return True
      
     def setShadowWidget(self, widget):
         ShadowWindow = QGraphicsDropShadowEffect()
@@ -165,12 +201,10 @@ class FrameRegister(QFrame):
             css = file.read()
         self.setStyleSheet(css)
 
-    # Eventos
-    def Input_PasswordKeyReleased(self, event):
-        if(event.key() == Qt.Key.Key_Return):
-            self.SaveUser = self.Input_User.text()
-            self.ExecuteLogin()
+    def setNone_FrameAlert(self):
+        self.objFrameAlert = None
 
+    # Eventos
     def Input_PasswordKeyTyped(self, text):
         isEmptyPassword = len(text) == 0
 
@@ -194,14 +228,6 @@ class FrameRegister(QFrame):
                 self.Input_Password.setEchoMode(QLineEdit.EchoMode.Password)
 
             self.valorshowPassword = not self.valorshowPassword
-
-    def Input_Password1KeyReleased(self, event):
-        if(event.key() == Qt.Key.Key_Return):
-            #self.SaveUser = self.Input_User.text()
-            #self.ExecuteLogin()
-            if not self.verifyPassword():
-                
-                pass
 
     def Input_Password1KeyTyped(self, text):
         isEmptyPassword = len(text) == 0
@@ -228,13 +254,38 @@ class FrameRegister(QFrame):
             self.valorshowPassword1 = not self.valorshowPassword1
 
     def ButtonRegistrarseMouseClicked(self):
-        if(self.verifyPassword()):
-            self.TabFrames.setCurrentIndex(2)
+        if(self.verifyErrors()):
+            try:
+                with self.conexionSQL.cursor() as stm:
+                    stm.execute("INSERT INTO [BarrioSeguro].[dbo].[RememberLogin] (R_Usuario) VALUES (?)", (self.Input_User.text()))
+                with self.conexionSQL.cursor() as stm:
+                    stm.execute("INSERT INTO [BarrioSeguro].[dbo].[Usuario] (U_User, U_Password, CorreoElectronico, DNI, FullName, NTelefono, Direccion) VALUES (?, ?, ?, ?, ?, ?, ?)", (self.Input_User.text(), self.Input_Password.text(), self.Input_Mail.text(), "None", "None", "None", "None"))
+                PanelEnterData_Register = FrameEnterData_Register(self.TabFrames, self.conexionSQL)
+                self.TabFrames.addTab(PanelEnterData_Register, 'EnterData_Register')
+                self.TabFrames.setCurrentIndex(self.TabFrames.indexOf(self.TabFrames.findChild(QFrame, 'FrameEnterData_Register')))
+                self.close()
+            except Exception as e:
+                print(e)
+                # Agregar una alerta cuando el usuario a crear ya exista
 
     def LabelSuggestionMouseClicked(self, event):
-        self.TabFrames.setCurrentIndex(0)
+        self.TabFrames.setCurrentIndex(self.TabFrames.indexOf(self.TabFrames.findChild(QFrame, 'FrameLogin')))
+        self.Input_User.setText('')
+        self.Input_Mail.setText('')
+        self.Input_Password.setText('')
+        self.Input_Password1.setText('')
+        self.CheckTerms.setChecked(False)
+        self.Input_User.setFocus()
+
+    def eventFilter(self, obj, event):
+        if(event.type() == QEvent.Type.WindowActivate and self.objFrameAlert != None):
+            self.objFrameAlert.raise_()
+            self.objFrameAlert.activateWindow()
+        return super().eventFilter(obj, event)
 
 class FrameEnterData_Register(QFrame):
+
+    objFrameAlert = None
 
     def __init__(self, TabFrames, conexionSQL):
         super().__init__()
@@ -270,7 +321,7 @@ class FrameEnterData_Register(QFrame):
         IconFullName.setGeometry(10, 10, 20, 20)
         self.ResizeImage(IconFullName, 'img/usuario.png')
 
-        self.Input_FullName = QLineEdit(PanelFullName)
+        self.Input_FullName = InputFullNameLineEdit(PanelFullName)
         self.Input_FullName.setObjectName("InputText")
         self.Input_FullName.setGeometry(38, 10, 224, 20)
         self.Input_FullName.setPlaceholderText("Nombres completos")
@@ -288,6 +339,7 @@ class FrameEnterData_Register(QFrame):
         self.Input_NumberPhone = QLineEdit(PanelNumberPhone)
         self.Input_NumberPhone.setObjectName("InputText")
         self.Input_NumberPhone.setGeometry(38, 10, 224, 20)
+        self.Input_NumberPhone.setMaxLength(9)
         self.Input_NumberPhone.setPlaceholderText("Número de teléfono")
 
     def addressComponents(self):
@@ -317,8 +369,9 @@ class FrameEnterData_Register(QFrame):
 
         self.Input_DNI = QLineEdit(PanelDNI)
         self.Input_DNI.setGeometry(38, 10, 195, 20)
-        self.Input_DNI.setObjectName("InputText")
+        self.Input_DNI.setMaxLength(8)
         self.Input_DNI.setPlaceholderText("Ingrese su DNI")
+        self.Input_DNI.setObjectName("InputText")
 
     def buttonComponents(self):
 
@@ -345,6 +398,29 @@ class FrameEnterData_Register(QFrame):
 
         ButtonNext.clicked.connect(self.ButtonNextMouseClicked)
 
+    def verifyErrors(self):
+        if(self.Input_FullName.text() == '' or self.Input_NumberPhone.text() == '' or self.Input_Address.text() == '' or self.Input_DNI.text() == ''):
+            self.setEnabled(False)
+            self.objFrameAlert = FrameAlert(self)
+            self.objFrameAlert.LabelMessage.setText("Rellene todos los campos")
+            self.objFrameAlert.setVisible(True)
+            return False
+        
+        if(not self.Input_NumberPhone.text().startswith('9') or not self.Input_NumberPhone.text().isdigit()):
+            self.setEnabled(False)
+            self.objFrameAlert = FrameAlert(self)
+            self.objFrameAlert.LabelMessage.setText("Ingrese un número de teléfono válido")
+            self.objFrameAlert.setVisible(True)
+            return False
+        
+        if not self.Input_DNI.text().isdigit():
+            self.setEnabled(False)
+            self.objFrameAlert = FrameAlert(self)
+            self.objFrameAlert.LabelMessage.setText("Ingrese un número de DNI válido")
+            self.objFrameAlert.setVisible(True)
+            return False
+        return True
+
     def setShadowWidget(self, widget):
         ShadowWindow = QGraphicsDropShadowEffect()
         ShadowWindow.setBlurRadius(20)
@@ -362,40 +438,44 @@ class FrameEnterData_Register(QFrame):
             css = file.read()
         self.setStyleSheet(css)
 
+    def setNone_FrameAlert(self):
+        self.objFrameAlert = None
+
     # Eventos
-    def ButtonClearMouseClicked(self):
-        pass
-
     def ButtonNextMouseClicked(self):
-        if(self.Input_FullName.text() != '' and self.Input_NumberPhone.text() != '' and self.Input_Address.text() != '' and self.Input_DNI.text() != ''):
-            self.TabFrames.setCurrentIndex(3)
+        if(self.verifyErrors()):
+            result = ''
+            try:
+                with self.conexionSQL.cursor() as stm:
+                    result = stm.execute("SELECT * FROM [BarrioSeguro].[dbo].[RememberLogin]").fetchone()
+                with self.conexionSQL.cursor() as stm:
+                    stm.execute(f"UPDATE [BarrioSeguro].[dbo].[Usuario] SET DNI = '{self.Input_DNI.text()}', FullName = '{self.Input_FullName.text()}', NTelefono = '{self.Input_NumberPhone.text()}', Direccion = '{self.Input_Address.text()}' WHERE U_USER = '{result[0]}'")
+                PanelEnterEmergency_Contact = FrameEnterEmergency_Contact(self.TabFrames, self.conexionSQL)
+                self.TabFrames.addTab(PanelEnterEmergency_Contact, 'EnterEmergency_Contact')
+                self.TabFrames.setCurrentIndex(self.TabFrames.indexOf(self.TabFrames.findChild(QFrame, 'FrameEnterEmergency_Contact')))
+                self.close()
+            except Exception as e:
+                print(e)
 
-    def Imput_Email(self,text):
-        self.text_input_email=self.Input_Address
-        self.text_2='@gmail.com'
-        if self.text_2.text() is not self.text_input_email.text():
-         self.ValorPass=False
-        elif():
-            self.ValorPass=True
-
-    def Verify_DNI(self):
-        if (len(self.Input_DNI)==8):
-            self.ValorPass=True
-
-    def Verify_Number(self):
-        if (len(self.Input_NumberPhone)==9):
-            self.ValorPass=True
+    def eventFilter(self, obj, event):
+        if(event.type() == QEvent.Type.WindowActivate and self.objFrameAlert != None):
+            self.objFrameAlert.raise_()
+            self.objFrameAlert.activateWindow()
+        return super().eventFilter(obj, event)
 
 class FrameEnterEmergency_Contact(QFrame):
 
     a, CurrentState_CantPanelContact = 20, 0
+    list_contacts = []
+    objFrameAlert = None
     
     def __init__(self, TabFrames, conexionSQL):
         super().__init__()
         self.TabFrames=TabFrames
         self.conexionSQL=conexionSQL
 
-        self.setObjectName("MainPanel")
+        self.installEventFilter(self)
+        self.setObjectName("FrameEnterEmergency_Contact")
         BackgroundImage = QLabel(self)
         BackgroundImage.resize(360, 660)
         self.ResizeImage(BackgroundImage, 'img/fondo1-blur.png')
@@ -435,11 +515,11 @@ class FrameEnterEmergency_Contact(QFrame):
         self.ScrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.ScrollArea.setWidgetResizable(True)
 
-        PanelScroll = QFrame()
-        PanelScroll.setObjectName("PanelScroll")
+        self.PanelScroll = QFrame()
+        self.PanelScroll.setObjectName("PanelScroll")
 
-        self.layoutV = QVBoxLayout(PanelScroll)
-        self.ScrollArea.setWidget(PanelScroll)
+        self.layoutV = QVBoxLayout(self.PanelScroll)
+        self.ScrollArea.setWidget(self.PanelScroll)
 
         self.ButtonAdd = QPushButton(self)
         self.ButtonAdd.setText("Agregar número de contacto")
@@ -456,16 +536,41 @@ class FrameEnterEmergency_Contact(QFrame):
         IconAdd.setStyleSheet("background-color: transparent;")
         self.ResizeImage(IconAdd, 'img/suma_simbolo.png')
 
-        IconNext = QLabel(self)
-        IconNext.setGeometry(278, 580, 50, 50)
-        IconNext.setStyleSheet("background-color: transparent;")
-        IconNext.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.ResizeImage(IconNext, 'img/next.png')
-        self.setShadowWidget(IconNext)
+        ButtonNext = QPushButton(self)
+        ButtonNext.setText("Siguiente")
+        ButtonNext.setGeometry(226, 580, 90, 40)
+        ButtonNext.setCursor(Qt.CursorShape.PointingHandCursor)
+        ButtonNext.setObjectName("ButtonNext")
+        self.setShadowWidget(ButtonNext)
 
-        IconNext.mouseReleaseEvent = self.IconNextMouseClicked
+        ButtonNext.clicked.connect(self.ButtonNextMouseClicked)
 
         self.ButtonAddMouseClicked()
+
+    def verifyErrors(self):
+        list_numbers = []
+        for i in range(self.layoutV.count()): # contact_widget
+                widget = self.layoutV.itemAt(i).widget()
+                for child in widget.children(): # PanelContact
+                    if child.objectName() == "PanelNumberPhone":
+                        for child_1 in child.children(): # InputText
+                            if child_1.objectName() == "InputText" and child_1.text() != '':
+                                if(not child_1.text().isdigit() or not child_1.text().startswith('9')):
+                                    self.setEnabled(False)
+                                    self.objFrameAlert = FrameAlert(self)
+                                    self.objFrameAlert.LabelMessage.setText("Número de teléfono inválido")
+                                    self.objFrameAlert.setVisible(True)
+                                    return False
+                                list_numbers.append(child_1.text())
+                                
+        if len(list_numbers) != len(set(list_numbers)):
+            if self.objFrameAlert == None:
+                self.setEnabled(False)
+                self.objFrameAlert = FrameAlert(self)
+                self.objFrameAlert.LabelMessage.setText("Hay números duplicados")
+                self.objFrameAlert.setVisible(True)
+            return False
+        return True
 
     def setShadowWidget(self, widget):
         ShadowWindow = QGraphicsDropShadowEffect()
@@ -484,6 +589,9 @@ class FrameEnterEmergency_Contact(QFrame):
             css = file.read()
         self.setStyleSheet(css)
 
+    def setNone_FrameAlert(self):
+        self.objFrameAlert = None
+
     # Eventos
     def ButtonAddMouseClicked(self):
 
@@ -494,20 +602,34 @@ class FrameEnterEmergency_Contact(QFrame):
         contact_widget = QWidget()
         contact_widget.setFixedHeight(40)
 
-        Panel = QFrame(contact_widget)
-        Panel.setObjectName("PanelContact")
-        Panel.setStyleSheet("#PanelContact {background-color: white; border-radius: 8px;}")
-        Panel.resize(238, 40)
+        PanelName = QFrame(contact_widget)
+        PanelName.setObjectName("PanelContact")
+        PanelName.setStyleSheet("#PanelContact {background-color: white; border-radius: 8px;}")
+        PanelName.resize(117, 40)
 
-        Icon = QLabel(Panel)
-        Icon.setGeometry(10, 10, 20, 20)
-        self.ResizeImage(Icon, 'img/contacto.png')
+        IconName = QLabel(PanelName)
+        IconName.setGeometry(10, 10, 20, 20)
+        self.ResizeImage(IconName, 'img/contacto.png')
 
-        Input = QLineEdit(Panel)
-        Input.setObjectName("InputText")
-        Input.setGeometry(38, 10, 188, 20)
-        Input.setPlaceholderText("Número de teléfono")
-        Input.setMaxLength(9)
+        InputName = QLineEdit(PanelName)
+        InputName.setObjectName("InputText")
+        InputName.setGeometry(38, 10, 76, 20)
+        InputName.setPlaceholderText("Nombre")
+
+        PanelNumberPhone = QFrame(contact_widget)
+        PanelNumberPhone.setObjectName("PanelNumberPhone")
+        PanelNumberPhone.setStyleSheet("#PanelNumberPhone {background-color: white; border-radius: 8px;}")
+        PanelNumberPhone.setGeometry(121, 0, 117, 40)
+
+        IconNumberPhone = QLabel(PanelNumberPhone)
+        IconNumberPhone.setGeometry(10, 10, 20, 20)
+        self.ResizeImage(IconNumberPhone, 'img/telefono.png')
+
+        InputNumberPhone = QLineEdit(PanelNumberPhone)
+        InputNumberPhone.setObjectName("InputText")
+        InputNumberPhone.setGeometry(38, 10, 76, 20)
+        InputNumberPhone.setMaxLength(9)
+        InputNumberPhone.setPlaceholderText("Número de teléfono")
 
         ButtonDelete = QPushButton(contact_widget)
         ButtonDelete.setGeometry(248, 8, 24, 24)
@@ -519,18 +641,141 @@ class FrameEnterEmergency_Contact(QFrame):
         IconQuitar.setCursor(Qt.CursorShape.PointingHandCursor)
         self.ResizeImage(IconQuitar, 'img/less.png')
 
-        ButtonDelete.clicked.connect(lambda: self.ButtonDeleteMouseClicked(contact_widget))
-
+        ButtonDelete.clicked.connect((lambda widget=contact_widget, pos = self.CurrentState_CantPanelContact: lambda: self.ButtonDeleteMouseClicked(widget, pos))())
+        
         self.layoutV.addWidget(contact_widget)
         self.CurrentState_CantPanelContact += 1
         
-    def ButtonDeleteMouseClicked(self, widget):
+    def ButtonDeleteMouseClicked(self, widget, pos):
         self.layoutV.removeWidget(widget)
         widget.deleteLater()
         self.CurrentState_CantPanelContact -= 1
         if(self.CurrentState_CantPanelContact < 8):
             self.ScrollArea.setFixedHeight(self.ScrollArea.height() - 44)
             self.ButtonAdd.move(self.ButtonAdd.x(), self.ButtonAdd.y() - 46)
+
+    def ButtonNextMouseClicked(self):
+        if self.verifyErrors():
+            result = ''
+            try:
+                with self.conexionSQL.cursor() as stm:
+                    result = stm.execute("SELECT * FROM [BarrioSeguro].[dbo].[RememberLogin]").fetchone()
+                for i in range(self.layoutV.count()): # contact_widget
+                    data = []
+                    widget = self.layoutV.itemAt(i).widget()
+                    for child in widget.children(): # PanelContact
+                        if child.objectName() == "PanelContact" or child.objectName() == "PanelNumberPhone":
+                            for child_1 in child.children(): # InputText
+                                if child_1.objectName() == "InputText":
+                                    data.append(child_1.text())
+                    if data[1] != '':
+                        with self.conexionSQL.cursor() as stm:
+                            stm.execute(f"INSERT INTO [BarrioSeguro].[dbo].[ContactoEmergencia] VALUES ('{result[0]}', '{data[0]}', '{data[1]}')")
+                PanelDashboard = FrameDashboard(self.TabFrames, self.conexionSQL)
+                self.TabFrames.addTab(PanelDashboard, 'Dashboard')
+                self.TabFrames.setCurrentIndex(self.TabFrames.indexOf(self.TabFrames.findChild(QFrame, 'FrameDashboard')))
+                self.close()
+            except Exception as e:
+                print(e)
+    
+    def eventFilter(self, obj, event):
+        if(event.type() == QEvent.Type.WindowActivate and self.objFrameAlert != None):
+            self.objFrameAlert.raise_()
+            self.objFrameAlert.activateWindow()
+        return super().eventFilter(obj, event)
+
+class FrameAlert(QFrame):
+
+    def __init__(self, Frame):
+        super().__init__()
+        self.objFrame = Frame
+        self.initcomponents()
+
+    def initcomponents(self):
+        self.WindowConfig()   
+        self.FrameComponents()
+        self.initStyle()
+
+    def WindowConfig(self):
+        self.resize(276, 96)
+        self.setLocationToCenter()
+        self.installEventFilter(self)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool)
+
+    def FrameComponents(self):
+        PanelPrincipal = QFrame(self)
+        PanelPrincipal.setGeometry(3, 3, 270, 90)
+        PanelPrincipal.setObjectName("MainPanel")
+        self.setShadowWidget(PanelPrincipal)
+
+        self.LabelMessage = QLabel(PanelPrincipal)
+        self.LabelMessage.setGeometry(35, 20, 200, 20)
+        self.LabelMessage.setObjectName("LabelMessage")
+        self.LabelMessage.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.LabelMessage.setText("Usuario o Contraseña incorrecto.")
         
-    def IconNextMouseClicked(self, event):
-        self.TabFrames.setCurrentIndex(4)
+        ButtonOk = QPushButton(PanelPrincipal)
+        ButtonOk.setGeometry(110, 50, 50, 25)
+        ButtonOk.setText('OK')
+        ButtonOk.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setShadowWidget(ButtonOk)
+        
+        ButtonOk.clicked.connect(self.ButtonOkMouseClicked)
+
+    def setShadowWidget(self, widget):
+        ShadowWindow = QGraphicsDropShadowEffect()
+        ShadowWindow.setBlurRadius(15)
+        ShadowWindow.setOffset(0.0, 0.0)
+        widget.setGraphicsEffect(ShadowWindow)
+
+    def setLocationToCenter(self):
+        screen_size = QApplication.primaryScreen().geometry()
+        x = ((screen_size.width() - self.width())//2)
+        y = ((screen_size.height() - self.height())//2)
+        self.move(x , y)
+
+    def initStyle(self):
+        with open('source/css/styleLoginAlert.css', 'r') as file:
+            css = file.read()
+        self.setStyleSheet(css)
+
+    # Eventos
+    def ButtonOkMouseClicked(self, event):
+        self.objFrame.setEnabled(True)
+        self.close()
+        self.objFrame.setNone_FrameAlert()
+
+    def showEvent(self, event):
+        self.activateWindow()
+        return super().showEvent(event)
+
+    def keyReleaseEvent(self, event):
+        if(event.key() == Qt.Key.Key_Return):
+            self.objFrame.setEnabled(True)
+            self.close()
+            self.objFrame.setNone_FrameAlert()
+        return super().keyReleaseEvent(event)
+
+class InputUserLineEdit(QLineEdit):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Space:
+            return event.ignore()
+        else:
+            return super().keyPressEvent(event)
+
+class InputFullNameLineEdit(QLineEdit):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def keyPressEvent(self, event):
+        if self.text().count(" ") == 3:
+            if event.key() == Qt.Key.Key_Space:
+                return event.ignore()
+            else:
+                return super().keyPressEvent(event)
+        return super().keyPressEvent(event)
+        

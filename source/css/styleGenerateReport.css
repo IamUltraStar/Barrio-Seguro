@@ -96,3 +96,18 @@ QLabel#LabelSuggestion {
     background-color: transparent;
     padding-left: 10px;
 }
+
+QPushButton#ButtonPerform {
+    background-color: rgba(121, 169, 143, 0.823);
+    color: rgb(0, 0, 0);
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 11pt;
+    font-family: 'Roboto';
+    font-style: normal;
+    padding-left: 2px;
+}
+
+QPushButton#ButtonPerform:hover {
+    background-color: rgb(91, 188, 141);
+}

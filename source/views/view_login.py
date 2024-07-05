@@ -1,6 +1,7 @@
 from PyQt6.QtCore import Qt, QEvent
 from PyQt6.QtWidgets import (QWidget, QApplication, QFrame, QLabel, QGraphicsDropShadowEffect, QLineEdit, QCheckBox, QPushButton)
 from PyQt6.QtGui import QPixmap
+from views.view_dashboard import FrameDashboard
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -12,16 +13,20 @@ class FrameLogin(QFrame):
     objFrameLoginAlert = None
     ValorPass, valorshowPassword = True, True
 
-    def __init__(self, TabFrames, conexionSQL):
+    def __init__(self, MainWindow, TabFrames, conexionSQL):
         super().__init__()
+        self.MainWindow = MainWindow
         self.TabFrames = TabFrames
         self.conexionSQL = conexionSQL
         self.installEventFilter(self)
 
-        self.setObjectName("MainPanel")
-        BackgroundImage = QLabel(self)
-        BackgroundImage.resize(360, 660)
-        self.ResizeImage(BackgroundImage, 'img/fondo1-blur.png')
+        self.setObjectName("FrameLogin")
+        self.BackgroundImage = QLabel(self)
+        self.BackgroundImage.resize(360, 660)
+        self.ResizeImage(self.BackgroundImage, 'img/fondo1-blur.png')
+
+        self.BackgroundImage.mousePressEvent = self.BackgroundImageMousePressed
+        self.BackgroundImage.mouseMoveEvent = self.BackgroundImageMouseDragged
 
         LabelTitle = QLabel(self)
         LabelTitle.setText('BIENVENIDO')
@@ -81,17 +86,9 @@ class FrameLogin(QFrame):
 
     def buttonsComponents(self):
 
-        self.RememberCheck = QCheckBox(self)
-        self.RememberCheck.setText("Permanecer conectado")
-        self.RememberCheck.setGeometry(59, 344, 135, 14)
-        self.RememberCheck.setObjectName("RememberCheck")
-        self.RememberCheck.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.RememberCheck.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setShadowWidget(self.RememberCheck)
-
         ButtonEntrar = QPushButton(self)
         ButtonEntrar.setText("Iniciar sesión")
-        ButtonEntrar.setGeometry(45, 372, 270, 40)
+        ButtonEntrar.setGeometry(45, 340, 270, 40)
         ButtonEntrar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         ButtonEntrar.setCursor(Qt.CursorShape.PointingHandCursor)
         ButtonEntrar.setObjectName("ButtonIn")
@@ -100,25 +97,25 @@ class FrameLogin(QFrame):
         ButtonEntrar.clicked.connect(self.ButtonEntrarMouseClicked)
 
         Separator = QFrame(self)
-        Separator.setGeometry(53, 433, 117, 2)
+        Separator.setGeometry(53, 401, 117, 2)
         Separator.setStyleSheet("background-color: white;")
         self.setShadowWidget(Separator)
 
         label = QLabel(self)
-        label.setGeometry(170, 422, 20, 20)
+        label.setGeometry(170, 390, 20, 20)
         label.setObjectName("LabelSuggestion")
         label.setText("o")
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setShadowWidget(label)
 
         Separator_1 = QFrame(self)
-        Separator_1.setGeometry(190, 433, 117, 2)
+        Separator_1.setGeometry(190, 401, 117, 2)
         Separator_1.setStyleSheet("background-color: white;")
         self.setShadowWidget(Separator_1)
 
         ButtonGoogle = QPushButton(self)
         ButtonGoogle.setText("Iniciar sesión con Google")
-        ButtonGoogle.setGeometry(45, 452, 270, 40)
+        ButtonGoogle.setGeometry(45, 420, 270, 40)
         ButtonGoogle.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         ButtonGoogle.setCursor(Qt.CursorShape.PointingHandCursor)
         ButtonGoogle.setObjectName("ButtonGoogle")
@@ -133,8 +130,8 @@ class FrameLogin(QFrame):
         self.setShadowWidget(IconGoogle)
 
         LabelSuggestion = QLabel(self)
-        LabelSuggestion.setGeometry(70, 532, 220, 20)
-        LabelSuggestion.setText("No estas registrado? Registrese ahora")
+        LabelSuggestion.setGeometry(70, 500, 220, 20)
+        LabelSuggestion.setText("No está registrado? Regístrese ahora")
         LabelSuggestion.setAlignment(Qt.AlignmentFlag.AlignCenter)
         LabelSuggestion.setObjectName("LabelSuggestion")
         self.setShadowWidget(LabelSuggestion)
@@ -190,26 +187,21 @@ class FrameLogin(QFrame):
                     self.valorLogin = True
 
             if(self.valorLogin):
-                if(self.RememberCheck.isChecked()):
-                    with self.conexionSQL.cursor() as stm:
-                        stm.execute("INSERT INTO [BarrioSeguro].[dbo].[RememberLogin] (Usuario) VALUES (?)", (self.SaveUser))
-
+                with self.conexionSQL.cursor() as stm:
+                    stm.execute("INSERT INTO [BarrioSeguro].[dbo].[RememberLogin] (R_Usuario) VALUES (?)", (self.SaveUser))
                 self.ResetStylePassword()
-                self.RememberCheck.setChecked(False)
-                self.setVisible(False)
+                PanelDashboard = FrameDashboard(self.TabFrames, self.conexionSQL)
+                self.TabFrames.addTab(PanelDashboard, 'Dashboard')
+                self.TabFrames.setCurrentIndex(self.TabFrames.indexOf(self.TabFrames.findChild(QFrame, 'FrameDashboard')))
             else:
                 self.setEnabled(False)
                 self.objFrameLoginAlert = FrameLoginAlert(self)
                 self.objFrameLoginAlert.setVisible(True)
-
         except Exception as e:
             print(e)
 
     def ResetStylePassword(self):
         self.Input_Password.setText('')
-        self.IconShowPassword.setPixmap(QPixmap())
-        self.IconShowPassword.setEnabled(False)
-
         if(self.Input_User.text() != ''):
             self.Input_Password.setFocus()
 
@@ -217,6 +209,15 @@ class FrameLogin(QFrame):
         self.objFrameLoginAlert = None
 
     # Eventos
+    def BackgroundImageMousePressed(self, event):
+        self.xMouse = event.pos().x()
+        self.yMouse = event.pos().y()
+
+    def BackgroundImageMouseDragged(self, event):
+        if event.buttons() == Qt.MouseButton.LeftButton:
+            posGlobal = self.BackgroundImage.mapToGlobal(event.pos())
+            self.MainWindow.move(posGlobal.x() - self.xMouse, posGlobal.y() - self.yMouse)
+            
     def Input_PasswordKeyReleased(self, event):
         if(event.key() == Qt.Key.Key_Return):
             self.SaveUser = self.Input_User.text()
@@ -260,14 +261,16 @@ class FrameLogin(QFrame):
                 print(f"Invalid token: {e}")
             try:
                 print(id_info.get('email'))
-                self.TabFrames.setCurrentIndex(4)
+                self.TabFrames.setCurrentIndex(self.TabFrames.indexOf(self.TabFrames.findChild(QFrame, 'FrameDashboard')))
             except Exception as e:
                 print(f"Failed to get user info: {e}")
         else:
             print("Authentication failed")
 
     def LabelSuggestionMouseClicked(self, event):
-        self.TabFrames.setCurrentIndex(1)
+        self.TabFrames.setCurrentIndex(self.TabFrames.indexOf(self.TabFrames.findChild(QFrame, 'FrameRegister')))
+        self.Input_User.setText('')
+        self.ResetStylePassword()
 
     def eventFilter(self, obj, event):
         if(event.type() == QEvent.Type.WindowActivate and self.objFrameLoginAlert != None):
@@ -300,11 +303,11 @@ class FrameLoginAlert(QWidget):
         PanelPrincipal.setObjectName("MainPanel")
         self.setShadowWidget(PanelPrincipal)
 
-        LabelMessage = QLabel(PanelPrincipal)
-        LabelMessage.setGeometry(45, 20, 180, 20)
-        LabelMessage.setObjectName("LabelMessage")
-        LabelMessage.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        LabelMessage.setText("Usuario o Contraseña incorrecto.")
+        self.LabelMessage = QLabel(PanelPrincipal)
+        self.LabelMessage.setGeometry(45, 20, 180, 20)
+        self.LabelMessage.setObjectName("LabelMessage")
+        self.LabelMessage.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.LabelMessage.setText("Usuario o Contraseña incorrecto.")
         
         ButtonOk = QPushButton(PanelPrincipal)
         ButtonOk.setGeometry(110, 50, 50, 25)

@@ -63,6 +63,15 @@ QLabel#LabelNameContact {
     background-color: transparent;
 }
 
+QLabel#LabelTelefono {
+    font-weight: bold;
+    font-size: 10pt;
+    font-family: 'Roboto';
+    font-style: normal;
+    color: rgba(0,0,0,0.5);
+    background-color: transparent;
+}
+
 QPushButton#ButtonDelete {
     background-color: rgba(177, 83, 83, 0.823);
     border: none;
