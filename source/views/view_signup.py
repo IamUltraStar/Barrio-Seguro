@@ -47,7 +47,6 @@ class FrameRegister(QFrame):
         self.Input_User.setObjectName("InputText")
         self.Input_User.setGeometry(38, 10, 224, 20)
         self.Input_User.setPlaceholderText("Ingrese un usuario")
-        self.Input_User.installEventFilter(self)
 
     def mailComponents(self):
         PanelMail = QFrame(self)
@@ -291,8 +290,9 @@ class FrameEnterData_Register(QFrame):
         super().__init__()
         self.TabFrames = TabFrames
         self.conexionSQL = conexionSQL
+        self.installEventFilter(self)
 
-        self.setObjectName("MainPanel")
+        self.setObjectName("FrameEnterData_Register")
         BackgroundImage = QLabel(self)
         BackgroundImage.resize(360, 660)
         self.ResizeImage(BackgroundImage, 'img/fondo1-blur.png')

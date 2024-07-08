@@ -13,6 +13,7 @@ class FrameDashboard(QFrame):
         super().__init__()
         self.TabFrames = TabFrames
         self.conexionSQL = conexionSQL
+        self.installEventFilter(self)
         self.setObjectName("FrameDashboard")
         self.initComponents()
         self.initStyle()
@@ -172,7 +173,7 @@ class FrameHomePage(QFrame):
 
         LabelGreet = QLabel(self)
         LabelGreet.setObjectName("LabelGreet")
-        LabelGreet.setGeometry(20, 100, 320, 40)
+        LabelGreet.setGeometry(20, 100, 320, 60)
         LabelGreet.setWordWrap(True)
         LabelGreet.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setShadowWidget(LabelGreet)
@@ -246,6 +247,7 @@ class FrameGenerateReport(QFrame):
     def __init__(self, conexionSQL):
         super().__init__()
         self.conexionSQL= conexionSQL
+        self.installEventFilter(self)
         self.initComponents()
         self.initStyle()
 
@@ -470,12 +472,18 @@ class FrameGenerateReport(QFrame):
     def ButtonPerformMouseClicked(self, event):
         if(self.verifyErrors()):
             try:
+                result = ''
+                with self.conexionSQL.cursor() as stm:
+                    result = stm.execute("SELECT * FROM [BarrioSeguro].[dbo].[RememberLogin]").fetchone()
                 id = f"{QDate.currentDate().toString("yyyy-MM-dd").replace('-','')}{random.randint(0,100)}"
                 with self.conexionSQL.cursor() as stm:
-                    stm.execute("INSERT INTO [BarrioSeguro].[dbo].[Reporte] (ID_Reporte, Tipo, Descripcion, Ubicacion, FechaHora, file_path, R_Contacto, R_NTelefono) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",(int(id),self.ListTypeIncident.currentText(), self.TextEditDescription.toPlainText(), self.InputAddress.text(), f"{self.InputDate.date().toString("yyyy-MM-dd")} {self.InputHour.time().toString("HH:mm:ss")}", self.InputEvidence.text(), self.InputNameContact.text(), self.InputNumberPhone.text()))
+                    if(not self.opcAnonymity.isChecked()):
+                        stm.execute("INSERT INTO [BarrioSeguro].[dbo].[Reporte] (ID_Reporte, Tipo, Descripcion, Ubicacion, FechaHora, file_path, R_Contacto, R_NTelefono, Autor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",(int(id),self.ListTypeIncident.currentText(), self.TextEditDescription.toPlainText(), self.InputAddress.text(), f"{self.InputDate.date().toString("yyyy-MM-dd")} {self.InputHour.time().toString("HH:mm:ss")}", self.InputEvidence.text(), self.InputNameContact.text(), self.InputNumberPhone.text(), result[0]))
+                    else:
+                        stm.execute("INSERT INTO [BarrioSeguro].[dbo].[Reporte] (ID_Reporte, Tipo, Descripcion, Ubicacion, FechaHora, file_path, R_Contacto, R_NTelefono) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",(int(id),self.ListTypeIncident.currentText(), self.TextEditDescription.toPlainText(), self.InputAddress.text(), f"{self.InputDate.date().toString("yyyy-MM-dd")} {self.InputHour.time().toString("HH:mm:ss")}", self.InputEvidence.text(), self.InputNameContact.text(), self.InputNumberPhone.text()))
                 self.setEnabled(False)
                 self.objFrameAlert = FrameAlert(self)
-                self.objFrameAlert.LabelMessage.setText("Reporte enviado")
+                self.objFrameAlert.LabelMessage.setText("Reporte enviado con exito.")
                 self.objFrameAlert.setVisible(True)
             except Exception as e:
                 print(e)
@@ -490,10 +498,12 @@ class FrameAccount(QFrame):
     
     cant_contacts = 0
     a = 19
+    objFrameAlertDeleteContact = None
 
     def __init__(self, conexionSQL):
         super().__init__()
         self.conexionSQL = conexionSQL
+        self.installEventFilter(self)
         self.user = ''
         try:
             with self.conexionSQL.cursor() as stm:
@@ -581,7 +591,7 @@ class FrameAccount(QFrame):
         result=[]
         try:
             with self.conexionSQL.cursor() as stm :
-                result = stm.execute(f"SELECT CE_Nombre ,CE_NTelefono FROM ContactoEmergencia WHERE P_User = '{self.user[0]}' ").fetchall()
+                result = stm.execute(f"SELECT CE_Nombre ,CE_NTelefono FROM [BarrioSeguro].[dbo].[ContactoEmergencia] WHERE P_User = '{self.user[0]}' ORDER BY CE_Nombre").fetchall()
         except Exception as e:
             print(e)
         
@@ -642,6 +652,9 @@ class FrameAccount(QFrame):
             css = file.read()
         self.setStyleSheet(css)
 
+    def setNone_FrameAlert(self):
+        self.objFrameAlertDeleteContact = None
+
     # Eventos
     def ButtonAddContactMouseClicked(self):
         pass
@@ -653,7 +666,7 @@ class FrameAccount(QFrame):
                 user = stm.execute("SELECT * FROM [BarrioSeguro].[dbo].[RememberLogin]").fetchone()
 
             number_phone = ''
-            for child in widget:
+            for child in widget.children():
                 if child.objectName() == 'LabelTelefono':
                     number_phone = child.text()
 
@@ -673,6 +686,12 @@ class FrameAccount(QFrame):
         self.objFrameAlertDeleteContact = FrameAlertDeleteContact(self, widget)
         self.objFrameAlertDeleteContact.LabelMessage.setText("Estas seguro de borrar este contacto?")
         self.objFrameAlertDeleteContact.setVisible(True)
+
+    def eventFilter(self, obj, event):
+        if(event.type() == QEvent.Type.WindowActivate and self.objFrameAlertDeleteContact != None):
+            self.objFrameAlertDeleteContact.raise_()
+            self.objFrameAlertDeleteContact.activateWindow()
+        return super().eventFilter(obj, event)
 
 class FrameSettings(QFrame):
     

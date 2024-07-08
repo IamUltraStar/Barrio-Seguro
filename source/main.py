@@ -2,7 +2,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QWidget, QApplication, QFrame, QGraphicsDropShadowEffect, QTabWidget)
 from db.ConexionSQL import ConexionSQL
 from views.view_login import FrameLogin
-from views.view_signup import FrameRegister
+from views.view_signup import FrameRegister, FrameEnterData_Register
 from views.view_dashboard import FrameDashboard
 import sys
 import os

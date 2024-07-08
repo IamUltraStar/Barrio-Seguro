@@ -30,7 +30,9 @@ CREATE TABLE Reporte(
     file_path       NVARCHAR(255),
     R_Contacto      VARCHAR(30),
     R_NTelefono     VARCHAR(9),
-    CONSTRAINT PK_Reporte PRIMARY KEY(ID_Reporte)
+    Autor           VARCHAR(25),
+    CONSTRAINT PK_Reporte PRIMARY KEY(ID_Reporte),
+    CONSTRAINT FK_Reporte_Usuario FOREIGN KEY(Autor) REFERENCES Usuario(U_User)
 );
 
 CREATE TABLE RememberLogin(

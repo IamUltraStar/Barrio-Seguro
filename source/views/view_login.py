@@ -25,9 +25,6 @@ class FrameLogin(QFrame):
         self.BackgroundImage.resize(360, 660)
         self.ResizeImage(self.BackgroundImage, 'img/fondo1-blur.png')
 
-        self.BackgroundImage.mousePressEvent = self.BackgroundImageMousePressed
-        self.BackgroundImage.mouseMoveEvent = self.BackgroundImageMouseDragged
-
         LabelTitle = QLabel(self)
         LabelTitle.setText('BIENVENIDO')
         LabelTitle.setObjectName("LabelTitle")
@@ -209,15 +206,6 @@ class FrameLogin(QFrame):
         self.objFrameLoginAlert = None
 
     # Eventos
-    def BackgroundImageMousePressed(self, event):
-        self.xMouse = event.pos().x()
-        self.yMouse = event.pos().y()
-
-    def BackgroundImageMouseDragged(self, event):
-        if event.buttons() == Qt.MouseButton.LeftButton:
-            posGlobal = self.BackgroundImage.mapToGlobal(event.pos())
-            self.MainWindow.move(posGlobal.x() - self.xMouse, posGlobal.y() - self.yMouse)
-            
     def Input_PasswordKeyReleased(self, event):
         if(event.key() == Qt.Key.Key_Return):
             self.SaveUser = self.Input_User.text()
