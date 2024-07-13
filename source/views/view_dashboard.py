@@ -116,6 +116,9 @@ class FrameDashboard(QFrame):
             self.objFrameAlert.setVisible(True)
         else:
             self.Update_PanelopcMouseClicked(index, Panelcomponent)
+            self.PanelGenerateReport.PanelTypeIncident.setStyleSheet("#InputPanel{border: none}")
+            self.PanelGenerateReport.PanelDescriptionIncident.setStyleSheet("#InputPanel{border: none}")
+            self.PanelGenerateReport.PanelAddress.setStyleSheet("#InputPanel{border: none}")
 
     def Update_PanelopcMouseClicked(self, index, Panelcomponent):
         self.Tab_Dashboard.setCurrentIndex(index)

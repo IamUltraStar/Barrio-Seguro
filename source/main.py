@@ -2,7 +2,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QWidget, QApplication, QFrame, QGraphicsDropShadowEffect, QTabWidget)
 from db.ConexionSQL import ConexionSQL
 from views.view_login import FrameLogin
-from views.view_signup import FrameRegister, FrameEnterData_Register
+from views.view_signup import FrameRegister
 from views.view_dashboard import FrameDashboard
 import sys
 import os
@@ -52,12 +52,6 @@ class BarrioSeguro(QWidget):
         PanelRegister = FrameRegister(self.TabFrames, self.connection)
         self.TabFrames.addTab(PanelRegister, 'Register_Account')
 
-    def setLocationToCenter(self):
-        screen_size = QApplication.primaryScreen().geometry()
-        x = ((screen_size.width() - self.width())//2)
-        y = ((screen_size.height() - self.height())//2)
-        self.move(x , y)
-
     def RememberLogin(self):
         try:
             result = ''
@@ -74,6 +68,12 @@ class BarrioSeguro(QWidget):
 
         except Exception as e:
             print(e)
+
+    def setLocationToCenter(self):
+        screen_size = QApplication.primaryScreen().geometry()
+        x = ((screen_size.width() - self.width())//2)
+        y = ((screen_size.height() - self.height())//2)
+        self.move(x , y)
 
     # Eventos
     def closeEvent(self, event):

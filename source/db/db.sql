@@ -36,23 +36,6 @@ CREATE TABLE Reporte(
 );
 
 CREATE TABLE RememberLogin(
-    R_Usuario VARCHAR(25)
+    R_Usuario VARCHAR(25),
+    CONSTRAINT FK_RememberLogin_Usuario FOREIGN KEY(R_Usuario) REFERENCES Usuario(U_User)
 );
-
-/* Persona:
-- PNombre
-- SNombre
-- ApellidoP
-- ApellidoM
-- Correo Electronico
-- Usuario
-- Contraseña
-- N° Teléfono
-- Dirección
-- DNI(PK)
-
-Contactos:
-- Persona(FK)
-- Nombre de Contacto
-- N° Teléfono
- */
