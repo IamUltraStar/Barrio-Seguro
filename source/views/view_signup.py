@@ -256,9 +256,9 @@ class FrameRegister(QFrame):
         if(self.verifyErrors()):
             try:
                 with self.conexionSQL.cursor() as stm:
-                    stm.execute("INSERT INTO [BarrioSeguro].[dbo].[RememberLogin] (R_Usuario) VALUES (?)", (self.Input_User.text()))
-                with self.conexionSQL.cursor() as stm:
                     stm.execute("INSERT INTO [BarrioSeguro].[dbo].[Usuario] (U_User, U_Password, CorreoElectronico, DNI, FullName, NTelefono, Direccion) VALUES (?, ?, ?, ?, ?, ?, ?)", (self.Input_User.text(), self.Input_Password.text(), self.Input_Mail.text(), "None", "None", "None", "None"))
+                with self.conexionSQL.cursor() as stm:
+                    stm.execute("INSERT INTO [BarrioSeguro].[dbo].[RememberLogin] (R_Usuario) VALUES (?)", (self.Input_User.text()))
                 PanelEnterData_Register = FrameEnterData_Register(self.TabFrames, self.conexionSQL)
                 self.TabFrames.addTab(PanelEnterData_Register, 'EnterData_Register')
                 self.TabFrames.setCurrentIndex(self.TabFrames.indexOf(self.TabFrames.findChild(QFrame, 'FrameEnterData_Register')))
